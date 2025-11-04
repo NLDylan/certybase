@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen relative bg-background text-foreground overflow-hidden">
+    <div class="min-h-screen relative bg-zinc-50 dark:bg-background text-foreground overflow-hidden">
         <!-- Back Button -->
         <div class="absolute top-4 left-4 z-20">
             <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-muted text-muted-foreground" variant="ghost"
@@ -178,7 +178,7 @@
                 transform: `scale(${zoomLevel})`,
                 transformOrigin: 'center center',
             }">
-                <div class="w-fit h-fit bg-white">
+                <div class="w-fit h-fit bg-white border border-border rounded-md">
                     <canvas id="canvas"></canvas>
                 </div>
             </div>
