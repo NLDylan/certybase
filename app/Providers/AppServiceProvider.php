@@ -2,10 +2,33 @@
 
 namespace App\Providers;
 
+use App\Models\Campaign;
+use App\Models\Certificate;
+use App\Models\Design;
+use App\Models\DesignTemplate;
+use App\Models\Organization;
+use App\Policies\CampaignPolicy;
+use App\Policies\CertificatePolicy;
+use App\Policies\DesignPolicy;
+use App\Policies\DesignTemplatePolicy;
+use App\Policies\OrganizationPolicy;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * The policy mappings for the application.
+     *
+     * @var array<class-string, class-string>
+     */
+    protected $policies = [
+        Organization::class => OrganizationPolicy::class,
+        Design::class => DesignPolicy::class,
+        Campaign::class => CampaignPolicy::class,
+        Certificate::class => CertificatePolicy::class,
+        DesignTemplate::class => DesignTemplatePolicy::class,
+    ];
+
     /**
      * Register any application services.
      */
