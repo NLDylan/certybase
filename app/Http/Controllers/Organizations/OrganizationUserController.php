@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Organizations;
 
 use App\Http\Controllers\Controller;
-use App\Models\OrganizationUser;
+use App\Http\Requests\InviteUserRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Services\OrganizationService;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class OrganizationUserController extends Controller
 {
+    public function __construct(
+        protected OrganizationService $organizationService
+    ) {}
+
     /**
      * Display a listing of users in the current organization.
      *
@@ -25,17 +30,10 @@ class OrganizationUserController extends Controller
         // Get users through the organization relationship
         // This automatically scopes to the organization from URL
         $users = $organization->users()
-            ->wherePivot('status', 'active')
+            ->wherePivot('status', \App\Enums\OrganizationUserStatus::Active)
             ->withPivot(['status', 'invited_at', 'accepted_at', 'invited_role'])
             ->with('organizationMemberships')
             ->get();
-
-        // Or query via the pivot table directly (alternative approach)
-        // $memberships = OrganizationUser::query()
-        //     ->where('organization_id', $organizationId)
-        //     ->where('status', 'active')
-        //     ->with('user')
-        //     ->get();
 
         return Inertia::render('Organizations/Users/Index', [
             'users' => $users,
@@ -48,44 +46,27 @@ class OrganizationUserController extends Controller
      *
      * Users are searched globally, but invitation is scoped to organization.
      */
-    public function invite(Request $request)
+    public function invite(InviteUserRequest $request): RedirectResponse
     {
         $organizationId = $this->currentOrganizationIdOrFail();
         $organization = $this->currentOrganizationOrFail();
 
-        $validated = $request->validate([
-            'email' => ['required', 'email', 'exists:users,email'],
-            'role' => ['nullable', 'string'],
-        ]);
+        // Check authorization
+        $this->authorize('inviteUsers', $organization);
 
-        // Find user globally (users are not scoped by organization)
-        $user = User::where('email', $validated['email'])->firstOrFail();
+        try {
+            $this->organizationService->inviteUser(
+                $organizationId,
+                $request->validated()['email'],
+                $request->validated()['role'] ?? null
+            );
 
-        // Check if user is already a member
-        $existingMembership = OrganizationUser::where('organization_id', $organizationId)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($existingMembership) {
-            return back()->withErrors(['email' => 'User is already a member of this organization.']);
+            return redirect()->route('organizations.users.index', [
+                'organization_id' => $organizationId,
+            ])->with('success', 'Invitation sent successfully.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['email' => $e->getMessage()]);
         }
-
-        // Create invitation (scoped to organization from URL)
-        $membership = OrganizationUser::create([
-            'organization_id' => $organizationId,
-            'user_id' => $user->id,
-            'status' => \App\Enums\OrganizationUserStatus::Pending,
-            'invited_at' => now(),
-            'invited_role' => $validated['role'] ?? null,
-        ]);
-
-        $membership->generateInvitationToken();
-
-        // TODO: Send invitation email
-
-        return redirect()->route('organizations.users.index', [
-            'organization_id' => $organizationId,
-        ])->with('success', 'Invitation sent successfully.');
     }
 
     /**
@@ -93,14 +74,15 @@ class OrganizationUserController extends Controller
      *
      * NOTE: This only removes the membership, NOT the user itself.
      */
-    public function destroy(User $user)
+    public function destroy(User $user): RedirectResponse
     {
         $organizationId = $this->currentOrganizationIdOrFail();
+        $organization = $this->currentOrganizationOrFail();
 
-        // Delete the membership (not the user - users are global)
-        OrganizationUser::where('organization_id', $organizationId)
-            ->where('user_id', $user->id)
-            ->delete();
+        // Check authorization
+        $this->authorize('inviteUsers', $organization);
+
+        $this->organizationService->removeUser($organizationId, $user->id);
 
         return redirect()->route('organizations.users.index', [
             'organization_id' => $organizationId,
