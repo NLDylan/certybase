@@ -136,24 +136,26 @@ class User extends Authenticatable implements HasMedia
 
     public function hasRoleInOrganization(string $role, string $organizationId): bool
     {
-        $originalTeamId = $this->getPermissionsTeamId();
-        $this->setPermissionsTeamId($organizationId);
+        $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+        $originalTeamId = $registrar->getPermissionsTeamId();
+        $registrar->setPermissionsTeamId($organizationId);
 
         $hasRole = $this->hasRole($role);
 
-        $this->setPermissionsTeamId($originalTeamId);
+        $registrar->setPermissionsTeamId($originalTeamId);
 
         return $hasRole;
     }
 
     public function canInOrganization(string $permission, string $organizationId): bool
     {
-        $originalTeamId = $this->getPermissionsTeamId();
-        $this->setPermissionsTeamId($organizationId);
+        $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+        $originalTeamId = $registrar->getPermissionsTeamId();
+        $registrar->setPermissionsTeamId($organizationId);
 
         $can = $this->can($permission);
 
-        $this->setPermissionsTeamId($originalTeamId);
+        $registrar->setPermissionsTeamId($originalTeamId);
 
         return $can;
     }

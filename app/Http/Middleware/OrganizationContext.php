@@ -23,7 +23,15 @@ class OrganizationContext
 
         // Priority 1: Check URL route parameter (like Nightwatch: /environments/{organization_id}/...)
         if ($request->route('organization_id') || $request->route('organization')) {
-            $organizationId = $request->route('organization_id') ?? $request->route('organization');
+            $orgParam = $request->route('organization_id') ?? $request->route('organization');
+            // Coerce to organization ID if route model bound
+            if ($orgParam instanceof \App\Models\Organization) {
+                $organizationId = $orgParam->getKey();
+            } elseif (is_array($orgParam)) {
+                $organizationId = $orgParam['id'] ?? null;
+            } else {
+                $organizationId = (string) $orgParam;
+            }
 
             // Validate user has access to this organization
             if ($organizationId && $user->hasAccessToOrganization($organizationId)) {
@@ -65,40 +73,40 @@ class OrganizationContext
             }
         }
 
+        // Prepare active organizations list
+        $activeOrganizations = $user->organizations()
+            ->wherePivot('status', \App\Enums\OrganizationUserStatus::Active)
+            ->get()
+            ->map(fn ($org) => [
+                'id' => $org->id,
+                'name' => $org->name,
+                'status' => $org->status->value,
+            ])
+            ->toArray();
+
         // Set Spatie permissions team ID (this scopes permissions to the organization)
         if ($organizationId) {
             app(PermissionRegistrar::class)->setPermissionsTeamId($organizationId);
-            $user->setPermissionsTeamId($organizationId);
 
-            // Get organization with relationships for Inertia
+            // Get current organization
             $organization = $user->organizations()
                 ->where('organizations.id', $organizationId)
                 ->first();
 
-            // Share organization data with Inertia
-            if ($organization) {
-                Inertia::share([
-                    'organization' => fn () => [
-                        'id' => $organization->id,
-                        'name' => $organization->name,
-                        'status' => $organization->status->value,
-                        'has_active_subscription' => $organization->hasActiveSubscription(),
-                    ],
-                    'organizations' => fn () => $user->organizations()
-                        ->wherePivot('status', \App\Enums\OrganizationUserStatus::Active)
-                        ->get()
-                        ->map(fn ($org) => [
-                            'id' => $org->id,
-                            'name' => $org->name,
-                            'status' => $org->status->value,
-                        ])
-                        ->toArray(),
-                ]);
-            }
+            Inertia::share([
+                'organization' => fn () => $organization ? [
+                    'id' => $organization->id,
+                    'name' => $organization->name,
+                    'status' => $organization->status->value,
+                    // Temporarily omit subscription lookup until billing is wired
+                    'has_active_subscription' => false,
+                ] : null,
+                'organizations' => fn () => $activeOrganizations,
+            ]);
         } else {
             Inertia::share([
                 'organization' => fn () => null,
-                'organizations' => fn () => [],
+                'organizations' => fn () => $activeOrganizations,
             ]);
         }
 
