@@ -84,6 +84,9 @@ return [
          *
          * For example, this would be nice if your primary keys are all UUIDs. In
          * that case, name this `model_uuid`.
+         *
+         * Note: The migration uses uuid() for this field, so the name stays 'model_id'
+         * but the actual column type is UUID.
          */
 
         'model_morph_key' => 'model_id',

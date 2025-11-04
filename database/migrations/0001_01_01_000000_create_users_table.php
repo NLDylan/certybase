@@ -17,8 +17,18 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('phone_number')->nullable();
+            $table->boolean('is_admin')->default(false);
+            $table->boolean('is_onboarded')->default(false);
+            $table->timestamp('onboarded_at')->nullable();
+            $table->boolean('wants_organization')->default(false);
+            $table->boolean('profile_completed')->default(false);
             $table->rememberToken();
             $table->timestamps();
+
+            // Indexes
+            $table->index('is_admin');
+            $table->index(['is_onboarded', 'created_at']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
