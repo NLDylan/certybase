@@ -22,7 +22,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
-import ImageCropDialog from '@/components/ImageCropDialog.vue'
+import ImageCropDialog from '@/components/editor/ImageCropDialog.vue'
 
 const editorStore = useEditorStore()
 

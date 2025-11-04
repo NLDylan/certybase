@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import TextToolbar from '@/components/TextToolbar.vue'
+import TextToolbar from '@/components/editor/TextToolbar.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editorStore = useEditorStore()

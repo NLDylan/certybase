@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import ImageToolbar from '@/components/ImageToolbar.vue'
+import ImageToolbar from '@/components/editor/ImageToolbar.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editorStore = useEditorStore()

@@ -22,7 +22,7 @@
         </div>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
-      <DropdownMenuItem @click="router.push('/')">
+      <DropdownMenuItem @click="router.visit('/')">
         <HomeIcon class="mr-2 h-4 w-4" />
         <span>Home</span>
       </DropdownMenuItem>
@@ -39,7 +39,7 @@
         <span>Settings</span>
       </DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem @click="router.push('/')">
+      <DropdownMenuItem @click="router.visit('/')">
         <LogOutIcon class="mr-2 h-4 w-4" />
         <span>Log out</span>
       </DropdownMenuItem>
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { router } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -67,5 +67,4 @@ import {
   LogOutIcon,
 } from 'lucide-vue-next'
 
-const router = useRouter()
 </script>

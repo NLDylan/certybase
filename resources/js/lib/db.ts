@@ -1,23 +1,17 @@
-import Dexie, { type Table } from 'dexie';
-
 export interface Project {
-  id: string;
-  name: string;
-  template: string;
-  createdAt: Date;
-  updatedAt: Date;
-  canvasData: any;
+  id: string
+  name: string
+  template: string
+  createdAt: Date
+  updatedAt: Date
+  canvasData: any
 }
 
-export class MySubClassedDexie extends Dexie {
-  projects!: Table<Project>; 
-
-  constructor() {
-    super('certificateEditorDB');
-    this.version(1).stores({
-      projects: 'id, name, createdAt, updatedAt' // Primary key and indexed props
-    });
-  }
+// Placeholder client-side store. Replace with API calls to your PostgreSQL backend.
+export const db = {
+  projects: {
+    async get(_id: string): Promise<Project | null> {
+      return null
+    },
+  },
 }
-
-export const db = new MySubClassedDexie();

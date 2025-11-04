@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import ShapeToolbar from '@/components/ShapeToolbar.vue'
+import ShapeToolbar from '@/components/editor/ShapeToolbar.vue'
 import { useEditorStore } from '@/stores/editor'
 
 const editorStore = useEditorStore()

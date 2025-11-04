@@ -3,7 +3,7 @@
         <!-- Back Button -->
         <div class="absolute top-4 left-4 z-20">
             <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-muted text-muted-foreground" variant="ghost"
-                @click="router.push('/')">
+                @click="router.visit('/')">
                 <ArrowLeftIcon class="h-5 w-5" />
             </Button>
         </div>
@@ -294,7 +294,7 @@
 
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { router } from '@inertiajs/vue3'
 import * as fabric from 'fabric'
 import { Button } from '@/components/ui/button'
 import {
@@ -309,9 +309,9 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useEditorStore } from '@/stores/editor'
-import VariableToolbar from '@/components/VariableToolbar.vue'
-import UserMenu from '@/components/UserMenu.vue'
-import BrowseSheet from '@/components/BrowseSheet.vue'
+import VariableToolbar from '@/components/editor/VariableToolbar.vue'
+import UserMenu from '@/components/editor/UserMenu.vue'
+import BrowseSheet from '@/components/editor/BrowseSheet.vue'
 
 // Icons
 import {
@@ -326,11 +326,11 @@ import {
     ZoomOutIcon,
     ArrowLeftIcon,
 } from 'lucide-vue-next'
-import ImageUploadDialog from '@/components/ImageUploadDialog.vue'
-import CommonToolbar from '@/components/CommonToolbar.vue'
-import TextEditingTools from '@/components/TextEditingTools.vue'
-import ShapeEditingTools from '@/components/ShapeEditingTools.vue'
-import ImageEditingTools from '@/components/ImageEditingTools.vue'
+import ImageUploadDialog from '@/components/editor/ImageUploadDialog.vue'
+import CommonToolbar from '@/components/editor/CommonToolbar.vue'
+import TextEditingTools from '@/components/editor/TextEditingTools.vue'
+import ShapeEditingTools from '@/components/editor/ShapeEditingTools.vue'
+import ImageEditingTools from '@/components/editor/ImageEditingTools.vue'
 import { FabricObject } from 'fabric'
 import { db } from '@/lib/db'
 import { AlignGuidelines } from 'fabric-guideline-plugin'
@@ -342,8 +342,6 @@ import {
 } from '@/lib/variables'
 import { UndoIcon, RedoIcon } from 'lucide-vue-next'
 
-const route = useRoute()
-const router = useRouter()
 const canvasWidth = 1123 / 1.5
 const canvasHeight = 794 / 1.5
 let canvas: fabric.Canvas
@@ -409,7 +407,8 @@ const handleMouseWheel = (event: WheelEvent) => {
 }
 
 onMounted(async () => {
-    const projectId = route.params.nano_id as string
+    const segments = window.location.pathname.split('/').filter(Boolean)
+    const projectId = segments[segments.length - 1] as string
     if (!projectId) {
         console.error('Project ID not found in route')
         return
