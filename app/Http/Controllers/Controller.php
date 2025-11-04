@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
 abstract class Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Get the current organization from the route parameter.
      * This works because OrganizationContext middleware validates access.

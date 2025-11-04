@@ -95,9 +95,8 @@ class OrganizationInvitationController extends Controller
         // Switch to the organization
         $user->switchOrganization($membership->organization_id);
 
-        return redirect()->route('organizations.dashboard', [
-            'organization_id' => $membership->organization_id,
-        ])->with('success', 'Invitation accepted successfully.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Invitation accepted successfully.');
     }
 
     /**

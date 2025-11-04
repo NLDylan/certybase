@@ -9,8 +9,9 @@ import {
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
-import { Link, router } from '@inertiajs/vue3';
-import { LogOut, Settings } from 'lucide-vue-next';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { LogOut, Settings, Building2 } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 interface Props {
     user: User;
@@ -19,6 +20,12 @@ interface Props {
 const handleLogout = () => {
     router.flushAll();
 };
+
+const page = usePage();
+const organization = computed(() => page.props.organization as { id: string; name: string } | null);
+const organizationSettingsUrl = computed(() => 
+    organization.value ? '/organization/settings' : null
+);
 
 defineProps<Props>();
 </script>
@@ -35,6 +42,12 @@ defineProps<Props>();
             <Link class="block w-full" :href="edit()" prefetch as="button">
                 <Settings class="mr-2 h-4 w-4" />
                 Settings
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="organizationSettingsUrl" :as-child="true">
+            <Link class="block w-full" :href="organizationSettingsUrl" prefetch as="button">
+                <Building2 class="mr-2 h-4 w-4" />
+                Organization
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>

@@ -28,8 +28,7 @@ class OrganizationSwitchController extends Controller
 
         $this->organizationService->switchOrganization($user->id, $organization->id);
 
-        return redirect()->route('organizations.dashboard', [
-            'organization_id' => $organization->id,
-        ])->with('success', 'Switched organization successfully.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Switched organization successfully.');
     }
 }

@@ -76,7 +76,7 @@ class OrganizationContext
 
             // If no current organization, redirect to the picker unless already there or on auth routes
             $path = '/'.$request->path();
-            $isOrgPage = str_starts_with($path, '/organizations');
+            $isOrgPage = str_starts_with($path, '/organizations') || str_starts_with($path, '/organization');
             $isAuth = str_starts_with($path, '/login') || str_starts_with($path, '/register') || str_starts_with($path, '/logout');
             if (! $isOrgPage && ! $isAuth) {
                 return redirect()->route('organizations.index');

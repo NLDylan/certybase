@@ -58,6 +58,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('organizations.invitations.accept');
     Route::post('/invitations/{token}/decline', [\App\Http\Controllers\Organizations\OrganizationInvitationController::class, 'decline'])
         ->name('organizations.invitations.decline');
+
+    // Organization settings (session-based, no UUID in URL)
+    Route::get('/organization/settings', [\App\Http\Controllers\Organizations\OrganizationController::class, 'show'])
+        ->middleware('organization')
+        ->name('organization.settings');
+    Route::put('/organization/settings', [\App\Http\Controllers\Organizations\OrganizationController::class, 'update'])
+        ->middleware('organization')
+        ->name('organization.settings.update');
+
+    // Organization users (session-based, no UUID in URL)
+    Route::get('/organization/users', [\App\Http\Controllers\Organizations\OrganizationUserController::class, 'index'])
+        ->middleware('organization')
+        ->name('organization.users.index');
+    Route::post('/organization/users/invite', [\App\Http\Controllers\Organizations\OrganizationUserController::class, 'invite'])
+        ->middleware('organization')
+        ->name('organization.users.invite');
+    Route::delete('/organization/users/{user}', [\App\Http\Controllers\Organizations\OrganizationUserController::class, 'destroy'])
+        ->middleware('organization')
+        ->name('organization.users.destroy');
+
+    // Organization subscription (session-based, no UUID in URL)
+    Route::get('/organization/subscription', [\App\Http\Controllers\Organizations\SubscriptionController::class, 'index'])
+        ->middleware('organization')
+        ->name('organization.subscription.index');
 });
 
 /*
@@ -119,11 +143,6 @@ Route::prefix('organizations/{organization_id}')->middleware(['auth', 'verified'
         'destroy' => 'organizations.certificates.destroy',
     ]);
 
-    // Organization settings
-    Route::get('/settings', [\App\Http\Controllers\Organizations\OrganizationController::class, 'show'])
-        ->name('organizations.settings');
-    Route::put('/settings', [\App\Http\Controllers\Organizations\OrganizationController::class, 'update'])
-        ->name('organizations.settings.update');
 
     // Organization users management
     Route::get('/users', [\App\Http\Controllers\Organizations\OrganizationUserController::class, 'index'])

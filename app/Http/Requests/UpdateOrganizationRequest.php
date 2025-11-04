@@ -13,9 +13,14 @@ class UpdateOrganizationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $organization = $this->route('organization_id')
-            ? Organization::find($this->route('organization_id'))
-            : $this->route('organization');
+        // Get organization from session (set by OrganizationContext middleware)
+        $organizationId = $this->session()->get('organization_id');
+
+        if (! $organizationId) {
+            return false;
+        }
+
+        $organization = Organization::find($organizationId);
 
         return $organization && $this->user()->can('update', $organization);
     }
@@ -27,9 +32,8 @@ class UpdateOrganizationRequest extends FormRequest
      */
     public function rules(): array
     {
-        $organizationId = $this->route('organization_id')
-            ? $this->route('organization_id')
-            : $this->route('organization')?->id;
+        // Get organization ID from session
+        $organizationId = $this->session()->get('organization_id');
 
         return [
             'name' => ['required', 'string', 'max:255'],

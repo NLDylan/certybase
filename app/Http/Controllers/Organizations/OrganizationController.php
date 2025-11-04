@@ -55,52 +55,52 @@ class OrganizationController extends Controller
         // Switch to the new organization
         $this->organizationService->switchOrganization($user->id, $organization->id);
 
-        return redirect()->route('organizations.dashboard', [
-            'organization_id' => $organization->id,
-        ])->with('success', 'Organization created successfully.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Organization created successfully.');
     }
 
     /**
-     * Display the specified organization.
+     * Display the organization settings page (uses session-based organization).
      */
-    public function show(string $organizationId): Response
+    public function show(): Response
     {
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            abort(404, 'No organization selected');
+        }
+
         $organization = \App\Models\Organization::findOrFail($organizationId);
 
         $this->authorize('view', $organization);
 
-        $organization->load([
-            'users' => function ($query) {
-                $query->wherePivot('status', \App\Enums\OrganizationUserStatus::Active);
-            },
-            'designs' => function ($query) {
-                $query->latest()->limit(5);
-            },
-            'campaigns' => function ($query) {
-                $query->latest()->limit(5);
-            },
-            'certificates' => function ($query) {
-                $query->latest()->limit(5);
-            },
-        ]);
-
-        return Inertia::render('organizations/Show', [
+        return Inertia::render('organizations/Settings/General', [
             'organization' => $organization,
         ]);
     }
 
     /**
-     * Update the specified organization.
+     * Update the organization (uses session-based organization).
      */
-    public function update(UpdateOrganizationRequest $request, string $organizationId): RedirectResponse
+    public function update(UpdateOrganizationRequest $request): RedirectResponse
     {
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            abort(404, 'No organization selected');
+        }
+
         $organization = \App\Models\Organization::findOrFail($organizationId);
 
         $this->authorize('update', $organization);
 
         $organization->update($request->validated());
 
-        return redirect()->back()->with('success', 'Organization updated successfully.');
+        // Refresh the organization data
+        $organization->refresh();
+
+        return redirect()->route('organization.settings')
+            ->with('success', 'Organization updated successfully.');
     }
 
     /**

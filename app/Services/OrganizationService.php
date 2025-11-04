@@ -193,10 +193,34 @@ class OrganizationService
             ]
         );
 
+        // If role has no permissions, sync them based on role name
+        if ($role->permissions->isEmpty()) {
+            $this->syncRolePermissions($role, $roleName);
+        }
+
         // Assign role
         $user->assignRole($role);
 
         // Restore original team ID
         $registrar->setPermissionsTeamId($originalTeamId);
+    }
+
+    /**
+     * Sync permissions to a role based on role name.
+     */
+    protected function syncRolePermissions(Role $role, string $roleName): void
+    {
+        $allPermissions = \Spatie\Permission\Models\Permission::all();
+
+        match ($roleName) {
+            'Administrator' => $role->syncPermissions($allPermissions),
+            'Editor' => $role->syncPermissions($allPermissions->filter(function ($permission) {
+                return ! in_array($permission->name, ['delete-organization', 'manage-billing']);
+            })),
+            'Viewer' => $role->syncPermissions($allPermissions->filter(function ($permission) {
+                return str_starts_with($permission->name, 'view-') || $permission->name === 'download-certificates';
+            })),
+            default => $role->syncPermissions([]),
+        };
     }
 }

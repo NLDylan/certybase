@@ -24,18 +24,22 @@ class OrganizationUserController extends Controller
      */
     public function index(): Response
     {
-        $organizationId = $this->currentOrganizationIdOrFail();
-        $organization = $this->currentOrganizationOrFail();
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            abort(404, 'No organization selected');
+        }
+
+        $organization = \App\Models\Organization::findOrFail($organizationId);
 
         // Get users through the organization relationship
-        // This automatically scopes to the organization from URL
         $users = $organization->users()
             ->wherePivot('status', \App\Enums\OrganizationUserStatus::Active)
             ->withPivot(['status', 'invited_at', 'accepted_at', 'invited_role'])
             ->with('organizationMemberships')
             ->get();
 
-        return Inertia::render('Organizations/Users/Index', [
+        return Inertia::render('organizations/Users/Index', [
             'users' => $users,
             'organization' => $organization,
         ]);
@@ -48,8 +52,13 @@ class OrganizationUserController extends Controller
      */
     public function invite(InviteUserRequest $request): RedirectResponse
     {
-        $organizationId = $this->currentOrganizationIdOrFail();
-        $organization = $this->currentOrganizationOrFail();
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            abort(404, 'No organization selected');
+        }
+
+        $organization = \App\Models\Organization::findOrFail($organizationId);
 
         // Check authorization
         $this->authorize('inviteUsers', $organization);
@@ -61,9 +70,8 @@ class OrganizationUserController extends Controller
                 $request->validated()['role'] ?? null
             );
 
-            return redirect()->route('organizations.users.index', [
-                'organization_id' => $organizationId,
-            ])->with('success', 'Invitation sent successfully.');
+            return redirect()->route('organization.users.index')
+                ->with('success', 'Invitation sent successfully.');
         } catch (\Exception $e) {
             return back()->withErrors(['email' => $e->getMessage()]);
         }
@@ -76,16 +84,20 @@ class OrganizationUserController extends Controller
      */
     public function destroy(User $user): RedirectResponse
     {
-        $organizationId = $this->currentOrganizationIdOrFail();
-        $organization = $this->currentOrganizationOrFail();
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            abort(404, 'No organization selected');
+        }
+
+        $organization = \App\Models\Organization::findOrFail($organizationId);
 
         // Check authorization
         $this->authorize('inviteUsers', $organization);
 
         $this->organizationService->removeUser($organizationId, $user->id);
 
-        return redirect()->route('organizations.users.index', [
-            'organization_id' => $organizationId,
-        ])->with('success', 'User removed from organization.');
+        return redirect()->route('organization.users.index')
+            ->with('success', 'User removed from organization.');
     }
 }
