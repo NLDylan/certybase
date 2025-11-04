@@ -29,8 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Switch organization (redirects to organization-scoped dashboard)
     Route::post('/organizations/{organization}/switch', function (\App\Models\Organization $organization) {
         \Illuminate\Support\Facades\Auth::user()->switchOrganization($organization->id);
-
-        return redirect()->route('organizations.dashboard', ['organization_id' => $organization->id]);
+        return redirect()->route('dashboard');
     })->name('organizations.switch');
 
     // Organization invitations (no org in URL needed)

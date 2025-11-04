@@ -21,42 +21,7 @@ class OrganizationContext
         $user = Auth::user();
         $organizationId = null;
 
-        // Priority 1: Check URL route parameter (like Nightwatch: /environments/{organization_id}/...)
-        if ($request->route('organization_id') || $request->route('organization')) {
-            $orgParam = $request->route('organization_id') ?? $request->route('organization');
-            // Coerce to organization ID if route model bound
-            if ($orgParam instanceof \App\Models\Organization) {
-                $organizationId = $orgParam->getKey();
-            } elseif (is_array($orgParam)) {
-                $organizationId = $orgParam['id'] ?? null;
-            } else {
-                $organizationId = (string) $orgParam;
-            }
-
-            // Validate user has access to this organization
-            if ($organizationId && $user->hasAccessToOrganization($organizationId)) {
-                // Update session to persist the choice
-                Session::put('organization_id', $organizationId);
-            } else {
-                // User doesn't have access, redirect to first accessible org or create one
-                $firstOrganization = $user->organizations()
-                    ->wherePivot('status', \App\Enums\OrganizationUserStatus::Active)
-                    ->first();
-
-                if ($firstOrganization) {
-                    // Redirect to same route with valid organization_id
-                    $route = $request->route();
-                    $parameters = $route->parameters();
-                    $parameters['organization_id'] = $firstOrganization->id;
-
-                    return redirect()->route($route->getName(), $parameters);
-                }
-
-                return redirect()->route('organizations.create');
-            }
-        }
-
-        // Priority 2: Check session
+        // Check session for current organization
         if (! $organizationId) {
             $organizationId = Session::get('organization_id');
         }
@@ -108,6 +73,14 @@ class OrganizationContext
                 'organization' => fn () => null,
                 'organizations' => fn () => $activeOrganizations,
             ]);
+
+            // If no current organization, redirect to the picker unless already there or on auth routes
+            $path = '/'.$request->path();
+            $isOrgPage = str_starts_with($path, '/organizations');
+            $isAuth = str_starts_with($path, '/login') || str_starts_with($path, '/register') || str_starts_with($path, '/logout');
+            if (! $isOrgPage && ! $isAuth) {
+                return redirect()->route('organizations.index');
+            }
         }
 
         return $next($request);
