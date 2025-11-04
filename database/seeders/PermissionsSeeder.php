@@ -51,14 +51,51 @@ class PermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        // Create roles (these will be created per-organization with team scoping)
-        // Note: Actual role assignment happens when organizations are created
-        // This seeder just ensures permissions exist in the database
+        // Create standard roles and assign permissions
+        // Administrator: all permissions
+        $adminRole = Role::findOrCreate('Administrator', 'web');
+        $adminRole->syncPermissions(Permission::all());
 
-        $this->command->info('Permissions created successfully!');
-        $this->command->info('Roles will be created per-organization when organizations are created.');
+        // Editor: can view everything, create/update (but not delete org/billing), execute campaigns
+        $editorPermissions = [
+            // View permissions across resources
+            'view-organization',
+            'view-users',
+            'view-designs',
+            'view-campaigns',
+            'view-certificates',
+            'download-certificates',
+
+            // Modify non-destructive actions
+            'create-designs',
+            'update-designs',
+            'publish-designs',
+
+            'create-campaigns',
+            'update-campaigns',
+            'execute-campaigns',
+
+            'create-certificates',
+            'update-certificates',
+        ];
+        $editorRole = Role::findOrCreate('Editor', 'web');
+        $editorRole->syncPermissions(Permission::whereIn('name', $editorPermissions)->get());
+
+        // Viewer: read-only access
+        $viewerPermissions = [
+            'view-organization',
+            'view-users',
+            'view-designs',
+            'view-campaigns',
+            'view-certificates',
+            'download-certificates',
+        ];
+        $viewerRole = Role::findOrCreate('Viewer', 'web');
+        $viewerRole->syncPermissions(Permission::whereIn('name', $viewerPermissions)->get());
+
+        $this->command->info('Permissions and standard roles created successfully!');
     }
 }
