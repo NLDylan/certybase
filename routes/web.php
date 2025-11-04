@@ -22,3 +22,5 @@ Route::get('editor/{id}', function (string $id) {
 })->name('editor.show');
 
 require __DIR__.'/settings.php';
+require __DIR__.'/organizations-global.php'; // Must come BEFORE organizations.php (order matters)
+require __DIR__.'/organizations.php';
