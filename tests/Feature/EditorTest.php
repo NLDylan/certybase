@@ -11,5 +11,3 @@ it('renders the editor page for a given id without DB', function () {
             ->where('id', '123')
         );
 });
-
-
