@@ -7,6 +7,11 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { createPinia } from 'pinia';
 import { initializeTheme } from './composables/useAppearance';
+import { configureEcho } from '@laravel/echo-vue';
+
+configureEcho({
+    broadcaster: 'reverb',
+});
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
