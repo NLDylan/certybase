@@ -5,7 +5,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { User } from '@/types';
+import type { User, BreadcrumbItemType } from '@/types';
 
 interface Props {
     users: User[];
@@ -22,10 +22,16 @@ const removeUser = (userId: string) => {
         router.delete(`/organization/users/${userId}`);
     }
 };
+
+const breadcrumbs: BreadcrumbItemType[] = [
+    { title: 'Organization' },
+    { title: 'Users' },
+];
 </script>
 
 <template>
-    <AppLayout>
+    <AppLayout :breadcrumbs="breadcrumbs">
+
         <Head title="Organization Users" />
 
         <SettingsLayout>
@@ -42,11 +48,8 @@ const removeUser = (userId: string) => {
                             <p>No users found.</p>
                         </div>
                         <div v-else class="space-y-4">
-                            <div
-                                v-for="user in props.users"
-                                :key="user.id"
-                                class="flex items-center justify-between p-4 border rounded-lg"
-                            >
+                            <div v-for="user in props.users" :key="user.id"
+                                class="flex items-center justify-between p-4 border rounded-lg">
                                 <div class="flex items-center gap-4">
                                     <div>
                                         <p class="font-medium">{{ user.name }}</p>
@@ -56,11 +59,7 @@ const removeUser = (userId: string) => {
                                         {{ user.pivot?.invited_role ?? 'Member' }}
                                     </Badge>
                                 </div>
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    @click="removeUser(user.id)"
-                                >
+                                <Button variant="destructive" size="sm" @click="removeUser(user.id)">
                                     Remove
                                 </Button>
                             </div>
@@ -71,4 +70,3 @@ const removeUser = (userId: string) => {
         </SettingsLayout>
     </AppLayout>
 </template>
-

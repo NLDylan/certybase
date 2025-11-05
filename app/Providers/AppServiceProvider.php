@@ -13,6 +13,7 @@ use App\Policies\DesignPolicy;
 use App\Policies\DesignTemplatePolicy;
 use App\Policies\OrganizationPolicy;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Cashier\Cashier;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -42,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Use Organization as the Cashier billable model
+        Cashier::useCustomerModel(Organization::class);
     }
 }

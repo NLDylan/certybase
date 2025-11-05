@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/organizations/SettingsLayout.vue';
+import type { BreadcrumbItemType } from '@/types';
 
 interface Props {
     organization: {
@@ -23,10 +24,14 @@ interface Props {
 const props = defineProps<Props>();
 const page = usePage();
 const organization = computed(() => page.props.organization as Props['organization'] | null);
+const breadcrumbs: BreadcrumbItemType[] = [
+    { title: 'Organization' },
+    { title: 'Settings' },
+];
 </script>
 
 <template>
-    <AppLayout>
+    <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Organization Settings" />
 
         <SettingsLayout>

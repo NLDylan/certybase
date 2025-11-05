@@ -24,11 +24,39 @@ class SubscriptionController extends Controller
 
         $this->authorize('view', $organization);
 
+        $plansWithPrices = config('subscriptions.plans');
+
+        // Determine current subscription's price and matching plan/interval
+        $current = $organization->subscription('default');
+        $currentPriceId = $current?->stripe_price;
+
+        $currentPlanKey = null;
+        $currentInterval = null;
+        foreach ($plansWithPrices as $key => $plan) {
+            if (($plan['prices']['monthly'] ?? null) === $currentPriceId) {
+                $currentPlanKey = $key;
+                $currentInterval = 'monthly';
+                break;
+            }
+            if (($plan['prices']['yearly'] ?? null) === $currentPriceId) {
+                $currentPlanKey = $key;
+                $currentInterval = 'yearly';
+                break;
+            }
+        }
+
         return Inertia::render('organizations/Subscription/Index', [
-            'organization' => $organization,
+            'organization' => array_merge($organization->toArray(), [
+                'has_active_subscription' => $organization->hasActiveSubscription(),
+            ]),
             'subscription' => [
                 'currency' => config('subscriptions.currency'),
-                'plans' => config('subscriptions.plans'),
+                'plans' => $plansWithPrices,
+                'current' => [
+                    'stripe_price' => $currentPriceId,
+                    'plan_key' => $currentPlanKey,
+                    'interval' => $currentInterval,
+                ],
             ],
             'can' => [
                 'update' => auth()->user()?->can('update', $organization) === true,
@@ -50,7 +78,8 @@ class SubscriptionController extends Controller
 
         $url = $subscriptions->createCheckoutSession($organizationId, $priceId);
 
-        return redirect()->away($url);
+        // Use Inertia external redirect so XHR POST transitions to a full browser visit
+        return \Inertia\Inertia::location($url);
     }
 
     /**
