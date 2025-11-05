@@ -28,7 +28,7 @@ const itemsPerRow = 4
 const itemHeight = 80
 
 // Image search from our new composable
-const { images, loading, query: imageQuery, searchImages } = useUnsplash()
+const { images, loading, error, query: imageQuery, searchImages } = useUnsplash()
 const imageScrollContainer = ref<HTMLElement | null>(null)
 
 watch(
@@ -108,18 +108,12 @@ onUnmounted(() => {
     <SheetTrigger as-child>
       <Button class="h-8 px-3" size="sm" variant="outline"> Assets </Button>
     </SheetTrigger>
-    <SheetContent
-      side="right"
-      class="w-[300px] sm:w-[400px] p-0 rounded-none h-full flex flex-col"
-    >
+    <SheetContent side="right" class="w-[300px] sm:w-[400px] p-0 rounded-none h-full flex flex-col">
       <SheetHeader class="p-4 border-b shrink-0">
         <SheetTitle>Browse</SheetTitle>
       </SheetHeader>
 
-      <div
-        ref="imageScrollContainer"
-        class="pt-0 p-4 flex-grow overflow-y-auto"
-      >
+      <div ref="imageScrollContainer" class="pt-0 p-4 flex-grow overflow-y-auto">
         <Tabs default-value="icons" class="w-full h-full flex flex-col">
           <TabsList class="grid w-full grid-cols-3 shrink-0">
             <TabsTrigger value="icons">Icons</TabsTrigger>
@@ -129,23 +123,12 @@ onUnmounted(() => {
 
           <TabsContent value="icons" class="mt-4 flex-grow">
             <Input v-model="query" placeholder="Search icons..." class="mb-4" />
-            <VList
-              :data="gridData"
-              :item-size="itemHeight"
-              class="h-[calc(100%-52px)]"
-            >
+            <VList :data="gridData" :item-size="itemHeight" class="h-[calc(100%-52px)]">
               <template #default="{ item }">
-                <div
-                  class="grid grid-cols-4 gap-2 px-2"
-                  :style="{ height: itemHeight + 'px' }"
-                >
-                  <div
-                    v-for="icon in item"
-                    :key="icon.name"
+                <div class="grid grid-cols-4 gap-2 px-2" :style="{ height: itemHeight + 'px' }">
+                  <div v-for="icon in item" :key="icon.name"
                     class="aspect-square p-2 border rounded hover:opacity-60 hover:scale-90 cursor-pointer flex justify-center items-center transition-colors"
-                    @click="addIconToCanvas(icon.name)"
-                    :title="icon.name"
-                  >
+                    @click="addIconToCanvas(icon.name)" :title="icon.name">
                     <component :is="icon.component" :size="24" />
                   </div>
                 </div>
@@ -154,59 +137,44 @@ onUnmounted(() => {
           </TabsContent>
 
           <TabsContent value="images" class="mt-4 flex-grow flex flex-col">
-            <Input
-              v-model="imageQuery"
-              placeholder="Search images..."
-              class="mb-4 shrink-0"
-            />
+            <Input v-model="imageQuery" placeholder="Search images..." class="mb-4 shrink-0" />
             <div class="flex-grow">
-              <div
-                v-if="!images.length && loading"
-                class="flex justify-center items-center h-full"
-              >
+              <div v-if="error" class="flex flex-col justify-center items-center h-full p-4 text-center">
+                <p class="text-sm text-red-600 mb-2">{{ error }}</p>
+                <p class="text-xs text-muted-foreground">
+                  Add <code class="px-1 py-0.5 bg-muted rounded text-xs">VITE_UNSPLASH_ACCESS_KEY=your_access_key</code>
+                  to your
+                  .env file
+                </p>
+                <p class="text-xs text-muted-foreground mt-1">
+                  Note: Use your <strong>Access Key</strong> (not Secret Key) for client-side requests
+                </p>
+              </div>
+              <div v-else-if="loading && (!images || images.length === 0)"
+                class="flex justify-center items-center h-full">
                 <p>Loading images...</p>
               </div>
-              <div
-                v-else-if="!images.length"
-                class="flex justify-center items-center h-full"
-              >
+              <div v-else-if="!images || images.length === 0" class="flex justify-center items-center h-full">
                 <p>No images found. Try a different search.</p>
               </div>
               <div v-else class="grid grid-cols-2 gap-4 p-1">
-                <div
-                  v-for="image in images"
-                  :key="image.id"
+                <div v-for="image in images" :key="image.id"
                   class="aspect-w-1 aspect-h-1 border rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                  @click="addImageToCanvas(image.urls.regular)"
-                >
-                  <img
-                    :src="image.urls.thumb"
-                    :alt="image.alt_description"
-                    class="w-full h-full object-cover"
-                  />
+                  @click="addImageToCanvas(image.urls.regular)">
+                  <img :src="image.urls.thumb" :alt="image.alt_description" class="w-full h-full object-cover" />
                 </div>
               </div>
-              <div
-                v-if="loading && images.length > 0"
-                class="grid grid-cols-2 gap-4 p-1"
-              >
-                <Skeleton
-                  v-for="n in 4"
-                  :key="n"
-                  class="aspect-w-1 aspect-h-1 rounded-lg"
-                />
+              <div v-if="loading && images && images.length > 0" class="grid grid-cols-2 gap-4 p-1">
+                <Skeleton v-for="n in 4" :key="n" class="aspect-w-1 aspect-h-1 rounded-lg" />
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="shapes" class="mt-4">
             <div class="grid grid-cols-4 gap-2 p-1">
-              <div
-                v-for="shape in shapeList"
-                :key="shape"
+              <div v-for="shape in shapeList" :key="shape"
                 class="aspect-square p-2 border rounded hover:opacity-60 hover:scale-90 cursor-pointer flex justify-center items-center transition-colors"
-                @click="addShapeToCanvas(shape)"
-              >
+                @click="addShapeToCanvas(shape)">
                 <img :src="shape" class="w-full h-full" />
               </div>
             </div>

@@ -12,13 +12,6 @@ Route::get('/', function () {
 
 // Dashboard route moved to organization-scoped routes below
 
-// Temporary editor route without DB dependency
-Route::get('editor/{id}', function (string $id) {
-    return Inertia::render('editor/[id]', [
-        'id' => $id,
-    ]);
-})->name('editor.show');
-
 require __DIR__.'/settings.php';
 
 /*
@@ -120,6 +113,8 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
         ->name('designs.show');
     Route::get('/designs/{design}/edit', [\App\Http\Controllers\Designs\DesignController::class, 'edit'])
         ->name('designs.edit');
+    Route::get('/editor/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'edit'])
+        ->name('editor.show');
     Route::put('/designs/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'update'])
         ->name('designs.update');
     Route::delete('/designs/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'destroy'])

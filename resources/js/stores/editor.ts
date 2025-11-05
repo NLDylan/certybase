@@ -1,29 +1,36 @@
 import { defineStore } from 'pinia'
 import { markRaw, createApp, h } from 'vue'
 import * as fabric from 'fabric'
-
-import { db } from '@/lib/db'
+import { router } from '@inertiajs/vue3'
 import CanvasHistory from '@/lib/CanvasHistory'
+import { useVariableStore } from './variables'
+import { scanForVariables } from '@/lib/variables'
 
 interface EditorState {
   canvas: fabric.Canvas | null
   selectedObject: fabric.Object | null
-  projectId: string | null
+  designId: string | null
   downloadFormat: string
   canvasHistory: CanvasHistory | null
   canUndo: boolean
   canRedo: boolean
+  isSaving: boolean
+  lastSavedAt: Date | null
+  saveError: string | null
 }
 
 export const useEditorStore = defineStore('editor', {
   state: (): EditorState => ({
     canvas: null,
     selectedObject: null,
-    projectId: null,
+    designId: null,
     downloadFormat: 'json',
     canvasHistory: null,
     canUndo: false,
     canRedo: false,
+    isSaving: false,
+    lastSavedAt: null,
+    saveError: null,
   }),
   actions: {
     setCanvas(canvasInstance: fabric.Canvas) {
@@ -45,13 +52,24 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
-    setProjectId(id: string) {
-      this.projectId = id
+    setDesignId(id: string) {
+      this.designId = id
     },
 
     async updateCanvasData() {
-      if (this.canvas && this.projectId) {
-        console.log('Updating canvas data in DB for project:', this.projectId)
+      if (!this.canvas || !this.designId) {
+        return
+      }
+
+      if (this.isSaving) {
+        return // Prevent concurrent saves
+      }
+
+      try {
+        this.isSaving = true
+        this.saveError = null
+
+        // Extract canvas data
         const canvasData = this.canvas.toObject([
           'id',
           'name',
@@ -64,11 +82,44 @@ export const useEditorStore = defineStore('editor', {
           'lockScalingY',
           'lockSkewingX',
           'lockSkewingY',
+          'template', // Include template for variables
         ])
-        await db.projects.update(this.projectId, {
-          canvasData,
-          updatedAt: new Date(),
-        })
+
+        // Scan for variables and extract them
+        scanForVariables(this.canvas)
+        const variableStore = useVariableStore()
+        const detectedVariables = variableStore.detectedVariables
+
+        // Save to database via Inertia router
+        router.put(
+          `/designs/${this.designId}`,
+          {
+            design_data: canvasData,
+            variables: detectedVariables,
+            _method: 'PUT',
+          },
+          {
+            preserveState: true,
+            preserveScroll: true,
+            only: [], // Don't reload any props, just save
+            onSuccess: () => {
+              console.log('Design saved successfully')
+              this.lastSavedAt = new Date()
+              this.saveError = null
+            },
+            onError: (errors) => {
+              console.error('Error saving design:', errors)
+              this.saveError = 'Failed to save'
+            },
+            onFinish: () => {
+              this.isSaving = false
+            },
+          }
+        )
+      } catch (error) {
+        console.error('Error updating canvas data:', error)
+        this.isSaving = false
+        this.saveError = 'Failed to save'
       }
     },
 
@@ -965,4 +1016,4 @@ export const useEditorStore = defineStore('editor', {
     },
   },
 })
-;('')
+  ; ('')

@@ -14,13 +14,12 @@ class UpdateDesignRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'design_data' => ['nullable', 'array'],
             'variables' => ['nullable', 'array'],
             'settings' => ['nullable', 'array'],
-            'status' => ['required', 'string'],
+            'status' => ['sometimes', 'required', 'string'],
         ];
     }
 }
-

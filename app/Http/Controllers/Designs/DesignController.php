@@ -15,8 +15,7 @@ class DesignController extends Controller
 {
     public function __construct(
         protected DesignService $designService
-    ) {
-    }
+    ) {}
 
     /**
      * Display a listing of designs for the current organization.
@@ -122,8 +121,22 @@ class DesignController extends Controller
             abort(404);
         }
 
-        return Inertia::render('designs/Edit', [
-            'design' => $design,
+        // Load the design with relationships
+        $design->load(['creator', 'organization']);
+
+        return Inertia::render('editor/[id]', [
+            'design' => [
+                'id' => $design->id,
+                'name' => $design->name,
+                'description' => $design->description,
+                'design_data' => $design->design_data ?? null,
+                'variables' => $design->variables ?? [],
+                'settings' => $design->settings ?? [],
+                'status' => $design->status->value,
+                'organization_id' => $design->organization_id,
+                'created_at' => $design->created_at,
+                'updated_at' => $design->updated_at,
+            ],
         ]);
     }
 
@@ -140,8 +153,16 @@ class DesignController extends Controller
         }
 
         $validated = $request->validated();
-        $design->update($validated);
+        $design->fill($validated);
+        $design->save();
 
+        // For autosave requests (Inertia), return without redirect
+        // The preserveState option in the frontend prevents page reload
+        if ($request->header('X-Inertia')) {
+            return back();
+        }
+
+        // For form submissions, redirect to show page
         return redirect()->route('designs.show', [
             'design' => $design->id,
         ]);

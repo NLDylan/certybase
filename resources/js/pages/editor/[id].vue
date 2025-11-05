@@ -2,14 +2,29 @@
     <div class="min-h-screen relative bg-zinc-50 dark:bg-background text-foreground overflow-hidden">
         <!-- Back Button -->
         <div class="absolute top-4 left-4 z-20">
-            <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-muted text-muted-foreground" variant="ghost"
-                @click="router.visit('/')">
+            <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-white text-foreground hover:bg-gray-100"
+                variant="ghost" @click="router.visit('/designs')">
                 <ArrowLeftIcon class="h-5 w-5" />
             </Button>
         </div>
 
-        <!-- User Profile Dropdown -->
-        <div class="absolute top-4 right-4 z-20">
+        <!-- User Profile + Autosave Status -->
+        <div class="absolute top-4 right-4 z-20 flex items-center gap-3">
+            <div
+                class="rounded-full bg-white text-foreground border border-border shadow-sm px-3 h-10 inline-flex items-center text-xs">
+                <span v-if="editorStore.isSaving" class="inline-flex items-center gap-1 text-muted-foreground">
+                    <Loader2Icon class="h-3.5 w-3.5 animate-spin" /> Saving...
+                </span>
+                <span v-else-if="editorStore.saveError" class="inline-flex items-center gap-1 text-red-600">
+                    Save failed
+                </span>
+                <span v-else class="inline-flex items-center gap-1 text-muted-foreground">
+                    <CheckIcon class="h-3.5 w-3.5 text-emerald-600" />
+                    Saved
+                    <span v-if="editorStore.lastSavedAt">· {{ new Date(editorStore.lastSavedAt).toLocaleTimeString()
+                        }}</span>
+                </span>
+            </div>
             <UserMenu />
         </div>
 
@@ -165,6 +180,7 @@
                     @click="editorStore.deleteSelectedObject()">
                     <Trash2Icon class="h-4 w-4" />
                 </Button>
+
             </div>
         </div>
 
@@ -186,16 +202,16 @@
 
         <!-- Zoom Controls -->
         <div class="absolute bottom-4 left-4 z-20 flex items-center space-x-1">
-            <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-muted text-muted-foreground" variant="secondary"
-                @click="zoomOut">
+            <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-white text-foreground hover:bg-gray-100"
+                variant="secondary" @click="zoomOut">
                 <ZoomOutIcon class="h-4 w-4" />
             </Button>
-            <Button class="h-10 px-3 rounded-full shadow-md text-sm bg-muted text-muted-foreground" variant="secondary"
-                @click="resetZoom">
+            <Button class="h-10 px-3 rounded-full shadow-md text-sm bg-white text-foreground hover:bg-gray-100"
+                variant="secondary" @click="resetZoom">
                 {{ Math.round(zoomLevel * 100) }}%
             </Button>
-            <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-muted text-muted-foreground" variant="secondary"
-                @click="zoomIn">
+            <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-white text-foreground hover:bg-gray-100"
+                variant="secondary" @click="zoomIn">
                 <ZoomInIcon class="h-4 w-4" />
             </Button>
         </div>
@@ -204,7 +220,7 @@
         <div class="absolute bottom-4 right-4 z-20">
             <Popover>
                 <PopoverTrigger as-child>
-                    <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-muted text-muted-foreground"
+                    <Button class="h-10 w-10 p-0 rounded-full shadow-md bg-white text-foreground hover:bg-gray-100"
                         variant="secondary">
                         <KeyboardIcon class="h-5 w-5" />
                     </Button>
@@ -296,6 +312,25 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import * as fabric from 'fabric'
+
+interface Design {
+    id: string
+    name: string
+    description?: string | null
+    design_data?: any
+    variables?: string[]
+    settings?: any
+    status: string
+    organization_id: string
+    created_at: string
+    updated_at: string
+}
+
+interface Props {
+    design: Design
+}
+
+const props = defineProps<Props>()
 import { Button } from '@/components/ui/button'
 import {
     Popover,
@@ -332,15 +367,15 @@ import TextEditingTools from '@/components/editor/TextEditingTools.vue'
 import ShapeEditingTools from '@/components/editor/ShapeEditingTools.vue'
 import ImageEditingTools from '@/components/editor/ImageEditingTools.vue'
 import { FabricObject } from 'fabric'
-import { db } from '@/lib/db'
-import { AlignGuidelines } from 'fabric-guideline-plugin'
-import { setupKeybindings } from '@/lib/keybindings'
 import {
     scanForVariables,
     applyVariables,
     handleEditingExited,
 } from '@/lib/variables'
-import { UndoIcon, RedoIcon } from 'lucide-vue-next'
+import { useVariableStore } from '@/stores/variables'
+import { UndoIcon, RedoIcon, Loader2Icon, CheckIcon } from 'lucide-vue-next'
+import { AlignGuidelines } from 'fabric-guideline-plugin'
+import { setupKeybindings } from '@/lib/keybindings'
 
 const canvasWidth = 1123 / 1.5
 const canvasHeight = 794 / 1.5
@@ -407,13 +442,13 @@ const handleMouseWheel = (event: WheelEvent) => {
 }
 
 onMounted(async () => {
-    const segments = window.location.pathname.split('/').filter(Boolean)
-    const projectId = segments[segments.length - 1] as string
-    if (!projectId) {
-        console.error('Project ID not found in route')
+    // Use design ID from props instead of parsing URL
+    const designId = props.design.id
+    if (!designId) {
+        console.error('Design ID not found in props')
         return
     }
-    editorStore.setProjectId(projectId)
+    editorStore.setDesignId(designId)
 
     Object.assign(FabricObject.ownDefaults, {
         transparentCorners: false,
@@ -468,23 +503,27 @@ onMounted(async () => {
 
     setupEventListeners()
 
-    const project = await db.projects.get(projectId)
-    console.log('Got the project id', projectId)
-    console.log('Got the project', project)
+    // Load design data from props
+    const designData = props.design.design_data
+    const variables = props.design.variables || []
 
-    if (project && project.canvasData) {
-        canvas.loadFromJSON(project.canvasData, () => {
+    // Initialize variables store with detected variables
+    if (variables.length > 0) {
+        const variableStore = useVariableStore()
+        variableStore.setDetectedVariables(variables)
+    }
+
+    if (designData) {
+        canvas.loadFromJSON(designData, () => {
             canvas.getObjects().forEach((obj) => obj.setCoords())
             canvas.requestRenderAll()
-            console.log('Canvas loaded from DB, setting up event listeners.')
+            console.log('Canvas loaded from design data')
             scanForVariables(canvas)
             applyVariables(canvas) // Apply stored values on load
-            // setupEventListeners()
         })
     } else {
-        console.log('No canvas data found, setting up event listeners.')
+        console.log('No design data found, starting with empty canvas')
         scanForVariables(canvas) // Also scan for variables on a fresh canvas
-        // setupEventListeners()
     }
 
     cleanupKeybindings = setupKeybindings(editorStore, canvas)

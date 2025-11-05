@@ -13,7 +13,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowUpDown, Plus, Search } from 'lucide-vue-next';
+import { ArrowUpDown, Plus, Search, MoreVertical } from 'lucide-vue-next';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { BreadcrumbItem } from '@/types';
 import type { Design, PaginatedResponse } from '@/types/models';
 
@@ -85,6 +91,18 @@ const getSortIcon = (column: string) => {
     if (sortBy.value !== column) return null;
     return sortOrder.value === 'asc' ? '↑' : '↓';
 };
+
+const goToEditor = (id: string) => {
+    router.visit(`/editor/${id}`);
+};
+
+const deleteDesign = (id: string) => {
+    if (!confirm('Are you sure you want to delete this design?')) return;
+    router.delete(`/designs/${id}`, {
+        preserveState: true,
+        preserveScroll: true,
+    });
+};
 </script>
 
 <template>
@@ -145,7 +163,7 @@ const getSortIcon = (column: string) => {
                                             <ArrowUpDown class="h-4 w-4" />
                                             <span v-if="getSortIcon('name')">{{
                                                 getSortIcon('name')
-                                                }}</span>
+                                            }}</span>
                                         </button>
                                     </th>
                                     <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
@@ -155,7 +173,7 @@ const getSortIcon = (column: string) => {
                                             <ArrowUpDown class="h-4 w-4" />
                                             <span v-if="getSortIcon('status')">{{
                                                 getSortIcon('status')
-                                                }}</span>
+                                            }}</span>
                                         </button>
                                     </th>
                                     <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
@@ -168,7 +186,7 @@ const getSortIcon = (column: string) => {
                                             <ArrowUpDown class="h-4 w-4" />
                                             <span v-if="getSortIcon('created_at')">{{
                                                 getSortIcon('created_at')
-                                                }}</span>
+                                            }}</span>
                                         </button>
                                     </th>
                                     <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">
@@ -184,10 +202,12 @@ const getSortIcon = (column: string) => {
                                     </td>
                                 </tr>
                                 <tr v-for="design in designs.data" :key="design.id"
-                                    class="border-b transition-colors hover:bg-muted/50">
+                                    class="border-b transition-colors hover:bg-muted/50 cursor-pointer"
+                                    @click="goToEditor(design.id)">
                                     <td class="p-4 align-middle">
                                         <div>
-                                            <Link :href="`/designs/${design.id}`" class="font-medium hover:underline">
+                                            <Link :href="`/designs/${design.id}`" class="font-medium hover:underline"
+                                                @click.stop>
                                             {{ design.name }}
                                             </Link>
                                             <p v-if="design.description" class="text-sm text-muted-foreground">
@@ -207,12 +227,22 @@ const getSortIcon = (column: string) => {
                                     <td class="p-4 align-middle text-sm text-muted-foreground">
                                         {{ new Date(design.created_at).toLocaleDateString() }}
                                     </td>
-                                    <td class="p-4 align-middle text-right">
-                                        <div class="flex justify-end gap-2">
-                                            <Link :href="`/designs/${design.id}`">
-                                            <Button variant="ghost" size="sm">View</Button>
-                                            </Link>
-                                        </div>
+                                    <td class="p-4 align-middle text-right" @click.stop>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreVertical class="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent class="w-40">
+                                                <DropdownMenuItem as-child>
+                                                    <Link :href="`/designs/${design.id}`">View</Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem @click="goToEditor(design.id)">Edit</DropdownMenuItem>
+                                                <DropdownMenuItem class="text-red-600" @click="deleteDesign(design.id)">
+                                                    Delete</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </td>
                                 </tr>
                             </tbody>
