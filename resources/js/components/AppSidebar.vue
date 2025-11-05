@@ -13,17 +13,49 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, Folder, LayoutGrid, Palette, Megaphone, Award } from 'lucide-vue-next';
+import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
-const mainNavItems: NavItem[] = [
+const page = usePage();
+const currentOrganization = computed(() => {
+    const org = page.props.organization as { id: string; name: string } | null;
+    return org;
+});
+
+const mainNavItems: NavItem[] = computed(() => {
+    const orgId = currentOrganization.value?.id;
+    const baseItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+            href: '/dashboard',
         icon: LayoutGrid,
     },
 ];
+
+    if (orgId) {
+        baseItems.push(
+            {
+                title: 'Designs',
+                href: '/designs',
+                icon: Palette,
+            },
+            {
+                title: 'Campaigns',
+                href: '/campaigns',
+                icon: Megaphone,
+            },
+            {
+                title: 'Certificates',
+                href: '/certificates',
+                icon: Award,
+            }
+        );
+    }
+
+    return baseItems;
+});
 
 const footerNavItems: NavItem[] = [
     {
@@ -45,7 +77,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="'/dashboard'">
                         <AppLogo />
                         </Link>
                     </SidebarMenuButton>

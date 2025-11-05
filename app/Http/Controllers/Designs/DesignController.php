@@ -3,13 +3,21 @@
 namespace App\Http\Controllers\Designs;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreDesignRequest;
+use App\Http\Requests\UpdateDesignRequest;
 use App\Models\Design;
+use App\Services\DesignService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DesignController extends Controller
 {
+    public function __construct(
+        protected DesignService $designService
+    ) {
+    }
+
     /**
      * Display a listing of designs for the current organization.
      */
@@ -17,15 +25,37 @@ class DesignController extends Controller
     {
         $organizationId = $this->currentOrganizationIdOrFail();
 
-        // Query designs scoped to the organization from URL parameter
-        $designs = Design::query()
+        $query = Design::query()
             ->where('organization_id', $organizationId)
-            ->with(['creator', 'organization'])
-            ->latest()
-            ->paginate(15);
+            ->with(['creator', 'organization']);
 
-        return Inertia::render('Designs/Index', [
+        // Filter by status
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+
+        // Search by name
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        // Sort
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        $allowedSortColumns = ['name', 'status', 'created_at', 'updated_at'];
+        if (in_array($sortBy, $allowedSortColumns)) {
+            $query->orderBy($sortBy, $sortOrder);
+        } else {
+            $query->latest();
+        }
+
+        $designs = $query->paginate(15)->withQueryString();
+
+        return Inertia::render('designs/Index', [
             'designs' => $designs,
+            'filters' => $request->only(['status', 'search', 'sort_by', 'sort_order']),
         ]);
     }
 
@@ -36,7 +66,7 @@ class DesignController extends Controller
     {
         $organizationId = $this->currentOrganizationIdOrFail();
 
-        return Inertia::render('Designs/Create', [
+        return Inertia::render('designs/Create', [
             'organizationId' => $organizationId,
         ]);
     }
@@ -44,26 +74,18 @@ class DesignController extends Controller
     /**
      * Store a newly created design.
      */
-    public function store(Request $request)
+    public function store(StoreDesignRequest $request)
     {
         $organizationId = $this->currentOrganizationIdOrFail();
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'design_data' => ['nullable', 'array'],
-            'variables' => ['nullable', 'array'],
-        ]);
+        $design = $this->designService->create(
+            $organizationId,
+            $request->user()->id,
+            $validated
+        );
 
-        // Always scope to the organization from URL
-        $design = Design::create([
-            'organization_id' => $organizationId,
-            'creator_id' => $request->user()->id,
-            ...$validated,
-        ]);
-
-        return redirect()->route('organizations.designs.show', [
-            'organization_id' => $organizationId,
+        return redirect()->route('designs.show', [
             'design' => $design->id,
         ]);
     }
@@ -83,7 +105,7 @@ class DesignController extends Controller
 
         $design->load(['creator', 'organization', 'campaigns', 'certificates']);
 
-        return Inertia::render('Designs/Show', [
+        return Inertia::render('designs/Show', [
             'design' => $design,
         ]);
     }
@@ -100,7 +122,7 @@ class DesignController extends Controller
             abort(404);
         }
 
-        return Inertia::render('Designs/Edit', [
+        return Inertia::render('designs/Edit', [
             'design' => $design,
         ]);
     }
@@ -108,7 +130,7 @@ class DesignController extends Controller
     /**
      * Update the specified design.
      */
-    public function update(Request $request, Design $design)
+    public function update(UpdateDesignRequest $request, Design $design)
     {
         $organizationId = $this->currentOrganizationIdOrFail();
 
@@ -117,18 +139,10 @@ class DesignController extends Controller
             abort(404);
         }
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'design_data' => ['nullable', 'array'],
-            'variables' => ['nullable', 'array'],
-            'status' => ['required', 'string'],
-        ]);
-
+        $validated = $request->validated();
         $design->update($validated);
 
-        return redirect()->route('organizations.designs.show', [
-            'organization_id' => $organizationId,
+        return redirect()->route('designs.show', [
             'design' => $design->id,
         ]);
     }
@@ -147,8 +161,6 @@ class DesignController extends Controller
 
         $design->delete();
 
-        return redirect()->route('organizations.designs.index', [
-            'organization_id' => $organizationId,
-        ]);
+        return redirect()->route('designs.index');
     }
 }

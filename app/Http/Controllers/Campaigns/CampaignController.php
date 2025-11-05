@@ -3,14 +3,22 @@
 namespace App\Http\Controllers\Campaigns;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreCampaignRequest;
+use App\Http\Requests\UpdateCampaignRequest;
 use App\Models\Campaign;
 use App\Models\Design;
+use App\Services\CampaignService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CampaignController extends Controller
 {
+    public function __construct(
+        protected CampaignService $campaignService
+    ) {
+    }
+
     /**
      * Display a listing of campaigns for the current organization.
      */
@@ -18,16 +26,43 @@ class CampaignController extends Controller
     {
         $organizationId = $this->currentOrganizationIdOrFail();
 
-        // Query campaigns scoped to organization from URL
-        $campaigns = Campaign::query()
+        $query = Campaign::query()
             ->where('organization_id', $organizationId)
             ->with(['design', 'creator', 'organization'])
-            ->withCount('certificates')
-            ->latest()
-            ->paginate(15);
+            ->withCount('certificates');
 
-        return Inertia::render('Campaigns/Index', [
+        // Filter by status
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by design
+        if ($request->has('design_id') && $request->design_id !== '') {
+            $query->where('design_id', $request->design_id);
+        }
+
+        // Search by name
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        // Sort
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        $allowedSortColumns = ['name', 'status', 'start_date', 'end_date', 'certificates_issued', 'created_at'];
+        if (in_array($sortBy, $allowedSortColumns)) {
+            $query->orderBy($sortBy, $sortOrder);
+        } else {
+            $query->latest();
+        }
+
+        $campaigns = $query->paginate(15)->withQueryString();
+
+        return Inertia::render('campaigns/Index', [
             'campaigns' => $campaigns,
+            'filters' => $request->only(['status', 'design_id', 'search', 'sort_by', 'sort_order']),
         ]);
     }
 
@@ -44,7 +79,7 @@ class CampaignController extends Controller
             ->where('status', 'active')
             ->get();
 
-        return Inertia::render('Campaigns/Create', [
+        return Inertia::render('campaigns/Create', [
             'organizationId' => $organizationId,
             'designs' => $designs,
         ]);
@@ -53,33 +88,23 @@ class CampaignController extends Controller
     /**
      * Store a newly created campaign.
      */
-    public function store(Request $request)
+    public function store(StoreCampaignRequest $request)
     {
         $organizationId = $this->currentOrganizationIdOrFail();
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'design_id' => ['required', 'uuid', 'exists:designs,id'],
-            'variable_mapping' => ['nullable', 'array'],
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date', 'after:start_date'],
-            'certificate_limit' => ['nullable', 'integer', 'min:1'],
-        ]);
+        $validated = $request->validated();
 
         // Verify the design belongs to this organization
         $design = Design::where('id', $validated['design_id'])
             ->where('organization_id', $organizationId)
             ->firstOrFail();
 
-        $campaign = Campaign::create([
-            'organization_id' => $organizationId,
-            'creator_id' => $request->user()->id,
-            ...$validated,
-        ]);
+        $campaign = $this->campaignService->create(
+            $organizationId,
+            $request->user()->id,
+            $validated
+        );
 
-        return redirect()->route('organizations.campaigns.show', [
-            'organization_id' => $organizationId,
+        return redirect()->route('campaigns.show', [
             'campaign' => $campaign->id,
         ]);
     }
@@ -103,7 +128,7 @@ class CampaignController extends Controller
             'certificates' => fn ($query) => $query->latest()->limit(50),
         ]);
 
-        return Inertia::render('Campaigns/Show', [
+        return Inertia::render('campaigns/Show', [
             'campaign' => $campaign,
         ]);
     }
@@ -111,7 +136,7 @@ class CampaignController extends Controller
     /**
      * Update the specified campaign.
      */
-    public function update(Request $request, Campaign $campaign)
+    public function update(UpdateCampaignRequest $request, Campaign $campaign)
     {
         $organizationId = $this->currentOrganizationIdOrFail();
 
@@ -119,17 +144,10 @@ class CampaignController extends Controller
             abort(404);
         }
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'variable_mapping' => ['nullable', 'array'],
-            'status' => ['required', 'string'],
-        ]);
-
+        $validated = $request->validated();
         $campaign->update($validated);
 
-        return redirect()->route('organizations.campaigns.show', [
-            'organization_id' => $organizationId,
+        return redirect()->route('campaigns.show', [
             'campaign' => $campaign->id,
         ]);
     }
@@ -147,8 +165,6 @@ class CampaignController extends Controller
 
         $campaign->delete();
 
-        return redirect()->route('organizations.campaigns.index', [
-            'organization_id' => $organizationId,
-        ]);
+        return redirect()->route('campaigns.index');
     }
 }

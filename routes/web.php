@@ -10,9 +10,7 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Dashboard route moved to organization-scoped routes below
 
 // Temporary editor route without DB dependency
 Route::get('editor/{id}', function (string $id) {
@@ -47,7 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/organizations', [\App\Http\Controllers\Organizations\OrganizationController::class, 'store'])
         ->name('organizations.store');
 
-    // Switch organization (redirects to organization-scoped dashboard)
+    // Switch organization (redirects to dashboard)
     Route::post('/organizations/{organization}/switch', [\App\Http\Controllers\Organizations\OrganizationSwitchController::class, 'store'])
         ->name('organizations.switch');
 
@@ -99,60 +97,51 @@ Route::middleware(['auth', 'verified'])->group(function () {
 |
 */
 
-Route::prefix('organizations/{organization_id}')->middleware(['auth', 'verified', 'organization'])->group(function () {
+Route::middleware(['auth', 'verified', 'organization'])->group(function () {
     // Dashboard
     Route::get('/dashboard', function () {
         return \Inertia\Inertia::render('Dashboard');
-    })->name('organizations.dashboard');
+    })->name('dashboard');
 
     // Designs - organization-scoped
     Route::get('/designs', [\App\Http\Controllers\Designs\DesignController::class, 'index'])
-        ->name('organizations.designs.index');
+        ->name('designs.index');
     Route::get('/designs/create', [\App\Http\Controllers\Designs\DesignController::class, 'create'])
-        ->name('organizations.designs.create');
+        ->name('designs.create');
     Route::post('/designs', [\App\Http\Controllers\Designs\DesignController::class, 'store'])
-        ->name('organizations.designs.store');
+        ->name('designs.store');
     Route::get('/designs/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'show'])
-        ->name('organizations.designs.show');
+        ->name('designs.show');
     Route::get('/designs/{design}/edit', [\App\Http\Controllers\Designs\DesignController::class, 'edit'])
-        ->name('organizations.designs.edit');
+        ->name('designs.edit');
     Route::put('/designs/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'update'])
-        ->name('organizations.designs.update');
+        ->name('designs.update');
     Route::delete('/designs/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'destroy'])
-        ->name('organizations.designs.destroy');
+        ->name('designs.destroy');
 
     // Campaigns - organization-scoped
     Route::resource('campaigns', \App\Http\Controllers\Campaigns\CampaignController::class)->names([
-        'index' => 'organizations.campaigns.index',
-        'create' => 'organizations.campaigns.create',
-        'store' => 'organizations.campaigns.store',
-        'show' => 'organizations.campaigns.show',
-        'edit' => 'organizations.campaigns.edit',
-        'update' => 'organizations.campaigns.update',
-        'destroy' => 'organizations.campaigns.destroy',
+        'index' => 'campaigns.index',
+        'create' => 'campaigns.create',
+        'store' => 'campaigns.store',
+        'show' => 'campaigns.show',
+        'edit' => 'campaigns.edit',
+        'update' => 'campaigns.update',
+        'destroy' => 'campaigns.destroy',
     ]);
 
     // Certificates - organization-scoped
     Route::resource('certificates', \App\Http\Controllers\Certificates\CertificateController::class)->names([
-        'index' => 'organizations.certificates.index',
-        'create' => 'organizations.certificates.create',
-        'store' => 'organizations.certificates.store',
-        'show' => 'organizations.certificates.show',
-        'edit' => 'organizations.certificates.edit',
-        'update' => 'organizations.certificates.update',
-        'destroy' => 'organizations.certificates.destroy',
+        'index' => 'certificates.index',
+        'create' => 'certificates.create',
+        'store' => 'certificates.store',
+        'show' => 'certificates.show',
+        'edit' => 'certificates.edit',
+        'update' => 'certificates.update',
+        'destroy' => 'certificates.destroy',
     ]);
-
-
-    // Organization users management
-    Route::get('/users', [\App\Http\Controllers\Organizations\OrganizationUserController::class, 'index'])
-        ->name('organizations.users.index');
-    Route::post('/users/invite', [\App\Http\Controllers\Organizations\OrganizationUserController::class, 'invite'])
-        ->name('organizations.users.invite');
-    Route::delete('/users/{user}', [\App\Http\Controllers\Organizations\OrganizationUserController::class, 'destroy'])
-        ->name('organizations.users.destroy');
-
-    // Subscription/Billing
-    Route::get('/subscription', [\App\Http\Controllers\Organizations\SubscriptionController::class, 'index'])
-        ->name('organizations.subscription.index');
+    Route::get('/certificates/{certificate}/download', [\App\Http\Controllers\Certificates\CertificateController::class, 'download'])
+        ->name('certificates.download');
+    Route::post('/certificates/{certificate}/revoke', [\App\Http\Controllers\Certificates\CertificateController::class, 'revoke'])
+        ->name('certificates.revoke');
 });

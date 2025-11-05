@@ -3,24 +3,32 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 
 abstract class Controller
 {
     use AuthorizesRequests;
 
     /**
-     * Get the current organization from the route parameter.
-     * This works because OrganizationContext middleware validates access.
+     * Get the current organization from session.
      */
     protected function currentOrganization(): ?\App\Models\Organization
     {
-        $organizationId = request()->route('organization_id') ?? request()->route('organization');
+        $organizationId = Session::get('organization_id');
 
         if (! $organizationId) {
             return null;
         }
 
-        return \App\Models\Organization::find($organizationId);
+        $user = Auth::user();
+        if (! $user) {
+            return null;
+        }
+
+        return $user->organizations()
+            ->where('organizations.id', $organizationId)
+            ->first();
     }
 
     /**
@@ -38,11 +46,11 @@ abstract class Controller
     }
 
     /**
-     * Get the current organization ID from route.
+     * Get the current organization ID from session.
      */
     protected function currentOrganizationId(): ?string
     {
-        return request()->route('organization_id') ?? request()->route('organization');
+        return Session::get('organization_id');
     }
 
     /**
@@ -53,7 +61,7 @@ abstract class Controller
         $organizationId = $this->currentOrganizationId();
 
         if (! $organizationId) {
-            abort(404, 'Organization ID not found in route');
+            abort(404, 'Organization ID not found in session');
         }
 
         return $organizationId;
