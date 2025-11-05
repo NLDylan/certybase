@@ -17,6 +17,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Palette, Megaphone, Award } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
+import OrganizationSwitcher from './OrganizationSwitcher.vue';
 
 const page = usePage();
 const currentOrganization = computed(() => {
@@ -83,6 +84,9 @@ const footerNavItems: NavItem[] = [
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
+            <div class="px-2 pt-2">
+                <OrganizationSwitcher />
+            </div>
         </SidebarHeader>
 
         <SidebarContent>

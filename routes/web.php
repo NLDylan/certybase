@@ -80,6 +80,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/organization/subscription', [\App\Http\Controllers\Organizations\SubscriptionController::class, 'index'])
         ->middleware('organization')
         ->name('organization.subscription.index');
+    Route::post('/organization/subscription/checkout/{priceId}', [\App\Http\Controllers\Organizations\SubscriptionController::class, 'checkout'])
+        ->middleware('organization')
+        ->name('organization.subscription.checkout');
+    Route::get('/organization/subscription/portal', [\App\Http\Controllers\Organizations\SubscriptionController::class, 'portal'])
+        ->middleware('organization')
+        ->name('organization.subscription.portal');
 });
 
 /*

@@ -63,8 +63,7 @@ class OrganizationContext
                     'id' => $organization->id,
                     'name' => $organization->name,
                     'status' => $organization->status->value,
-                    // Temporarily omit subscription lookup until billing is wired
-                    'has_active_subscription' => false,
+                    'has_active_subscription' => $organization->hasActiveSubscription(),
                 ] : null,
                 'organizations' => fn () => $activeOrganizations,
             ]);

@@ -18,7 +18,7 @@ class CheckSubscription
     public function handle(Request $request, Closure $next): Response
     {
         // Allow access to billing/subscription routes
-        if ($request->routeIs('billing.*', 'subscriptions.*', 'checkout.*')) {
+        if ($request->routeIs('billing.*', 'subscriptions.*', 'checkout.*', 'organization.subscription.*')) {
             return $next($request);
         }
 

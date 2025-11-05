@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Organizations;
 
 use App\Http\Controllers\Controller;
+use App\Services\SubscriptionService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,5 +27,39 @@ class SubscriptionController extends Controller
         return Inertia::render('organizations/Subscription/Index', [
             'organization' => $organization,
         ]);
+    }
+
+    /**
+     * Redirect to Stripe Checkout for a subscription.
+     */
+    public function checkout(string $priceId, SubscriptionService $subscriptions)
+    {
+        $organizationId = (string) session('organization_id');
+
+        abort_if(empty($organizationId), 404, 'No organization selected');
+
+        $organization = \App\Models\Organization::findOrFail($organizationId);
+        $this->authorize('update', $organization);
+
+        $url = $subscriptions->createCheckoutSession($organizationId, $priceId);
+
+        return redirect()->away($url);
+    }
+
+    /**
+     * Redirect to the Stripe Billing Portal.
+     */
+    public function portal(SubscriptionService $subscriptions)
+    {
+        $organizationId = (string) session('organization_id');
+
+        abort_if(empty($organizationId), 404, 'No organization selected');
+
+        $organization = \App\Models\Organization::findOrFail($organizationId);
+        $this->authorize('view', $organization);
+
+        $url = $subscriptions->billingPortalUrl($organizationId);
+
+        return redirect()->away($url);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Cashier\Subscription as CashierSubscription;
 use Laravel\Cashier\Billable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -60,6 +61,15 @@ class Organization extends Model implements HasMedia
     public function certificates(): HasMany
     {
         return $this->hasMany(Certificate::class);
+    }
+
+    /**
+     * Override Cashier's default foreign key guess (organization_id) and
+     * intentionally use the standard 'user_id' column on subscriptions.
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(CashierSubscription::class, 'user_id')->orderBy('created_at', 'desc');
     }
 
     public function isActive(): bool

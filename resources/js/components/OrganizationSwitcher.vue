@@ -1,66 +1,96 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Building2, ChevronsUpDown, Plus } from 'lucide-vue-next';
 import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import {
+    SidebarMenu,
+    SidebarMenuItem,
+    SidebarMenuButton,
+    useSidebar,
+} from '@/components/ui/sidebar';
 
-type Org = {
-    id: string
-    name: string
-    status?: string
-};
+type OrgOption = { id: string; name: string };
 
 const page = usePage();
+const { isMobile } = useSidebar();
 
-const organizations = computed<Org[]>(() => (page.props.organizations as Org[]) ?? []);
-const currentOrganization = computed<Org | null>(
-    () => (page.props.organization as Org | null) ?? null,
-);
+const currentOrg = computed<OrgOption | null>(() => {
+    const org = page.props.organization as { id: string; name: string } | null;
+    return org ? { id: org.id, name: org.name } : null;
+});
 
-const selectedId = ref<string | undefined>(currentOrganization.value?.id);
-
-function onChange(value: string) {
-    if (!value) return;
-    selectedId.value = value;
-    router.post(`/organizations/${value}/switch`, {}, { preserveScroll: true });
-}
+const organizations = computed<OrgOption[]>(() => {
+    const orgs = (page.props.organizations as Array<{ id: string; name: string }>) || [];
+    return orgs;
+});
 </script>
 
 <template>
-    <div v-if="organizations.length" class="ml-4 w-[240px]">
-        <Select :model-value="selectedId" @update:model-value="onChange">
-            <SelectTrigger class="h-9 w-full">
-                <SelectValue :placeholder="currentOrganization?.name ?? 'Select organization'" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectGroup>
-                    <SelectLabel>Organizations</SelectLabel>
-                    <SelectItem
-                        v-for="org in organizations"
-                        :key="org.id"
-                        :value="org.id"
+    <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        size="lg"
+                        class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     >
-                        {{ org.name }}
-                    </SelectItem>
-                </SelectGroup>
-            </SelectContent>
-        </Select>
-    </div>
-    <div v-else class="ml-4">
-        <a
-            href="/organizations/create"
-            class="text-sm text-neutral-600 hover:underline dark:text-neutral-300"
+                        <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                            <Building2 class="size-4" />
+                        </div>
+                        <div class="grid flex-1 text-left text-sm leading-tight min-w-0">
+                            <span class="truncate font-semibold" :title="currentOrg?.name || 'Select organization'">
+                                {{ currentOrg?.name || 'Select organization' }}
+                            </span>
+                            <span class="truncate text-xs">Organization</span>
+                        </div>
+                        <ChevronsUpDown class="ml-auto" />
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+            class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            align="start"
+            :side="isMobile ? 'bottom' : 'right'"
+            :side-offset="4"
         >
-            Create organization
-        </a>
-    </div>
+            <DropdownMenuLabel class="text-xs text-muted-foreground">Organizations</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <div class="max-h-72 overflow-auto">
+                <DropdownMenuItem
+                    v-for="(org, index) in organizations"
+                    :key="org.id"
+                    class="gap-2 p-2"
+                    as-child
+                >
+                    <Link :href="`/organizations/${org.id}/switch`" method="post" preserve-scroll class="flex items-center gap-2 w-full">
+                        <div class="flex size-6 items-center justify-center rounded-sm border">
+                            <Building2 class="size-4 shrink-0" />
+                        </div>
+                        <span class="truncate">{{ org.name }}</span>
+                        <span class="ml-auto text-[11px] text-muted-foreground">⌘{{ index + 1 }}</span>
+                    </Link>
+                </DropdownMenuItem>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem class="gap-2 p-2" as-child>
+                <Link href="/organizations/create" class="flex items-center gap-2 w-full">
+                    <div class="flex size-6 items-center justify-center rounded-md border bg-background">
+                        <Plus class="size-4" />
+                    </div>
+                    <div class="font-medium text-muted-foreground">Add organization</div>
+                </Link>
+            </DropdownMenuItem>
+        </DropdownMenuContent>
+    </DropdownMenu>
 </template>
-
 
