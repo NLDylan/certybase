@@ -26,6 +26,13 @@ class SubscriptionController extends Controller
 
         return Inertia::render('organizations/Subscription/Index', [
             'organization' => $organization,
+            'subscription' => [
+                'currency' => config('subscriptions.currency'),
+                'plans' => config('subscriptions.plans'),
+            ],
+            'can' => [
+                'update' => auth()->user()?->can('update', $organization) === true,
+            ],
         ]);
     }
 
