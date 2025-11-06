@@ -16,6 +16,10 @@ const sidebarNavItems: NavItem[] = [
         href: '/organization/settings',
     },
     {
+        title: 'Branding',
+        href: '/organization/settings/branding',
+    },
+    {
         title: 'Users',
         href: '/organization/users',
     },

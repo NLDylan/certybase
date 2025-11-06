@@ -54,6 +54,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/organization/settings', [\App\Http\Controllers\Organizations\OrganizationController::class, 'show'])
         ->middleware('organization')
         ->name('organization.settings');
+    Route::get('/organization/settings/branding', [\App\Http\Controllers\Organizations\OrganizationController::class, 'branding'])
+        ->middleware('organization')
+        ->name('organization.settings.branding');
     Route::put('/organization/settings', [\App\Http\Controllers\Organizations\OrganizationController::class, 'update'])
         ->middleware('organization')
         ->name('organization.settings.update');
@@ -136,6 +139,8 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
     Route::post('/media/from-url', [\App\Http\Controllers\Media\MediaController::class, 'storeFromUrl'])
         ->middleware('throttle:media-remote')
         ->name('media.from-url');
+    Route::delete('/media', [\App\Http\Controllers\Media\MediaController::class, 'destroy'])
+        ->name('media.destroy');
 
     // Campaigns - organization-scoped
     Route::resource('campaigns', \App\Http\Controllers\Campaigns\CampaignController::class)->names([

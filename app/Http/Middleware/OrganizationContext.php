@@ -46,6 +46,9 @@ class OrganizationContext
                 'id' => $org->id,
                 'name' => $org->name,
                 'status' => $org->status->value,
+                'icon_url' => $org->icon_url,
+                'logo_url' => $org->logo_url,
+                'has_growth_plan' => $org->hasGrowthPlan(),
             ])
             ->toArray();
 
@@ -64,6 +67,9 @@ class OrganizationContext
                     'name' => $organization->name,
                     'status' => $organization->status->value,
                     'has_active_subscription' => $organization->hasActiveSubscription(),
+                    'has_growth_plan' => $organization->hasGrowthPlan(),
+                    'icon_url' => $organization->icon_url,
+                    'logo_url' => $organization->logo_url,
                 ] : null,
                 'organizations' => fn () => $activeOrganizations,
             ]);

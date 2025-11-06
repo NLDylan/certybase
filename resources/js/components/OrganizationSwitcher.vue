@@ -18,18 +18,18 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 
-type OrgOption = { id: string; name: string };
+type OrgOption = { id: string; name: string; icon_url?: string | null; logo_url?: string | null; has_growth_plan?: boolean };
 
 const page = usePage();
 const { isMobile } = useSidebar();
 
 const currentOrg = computed<OrgOption | null>(() => {
-    const org = page.props.organization as { id: string; name: string } | null;
-    return org ? { id: org.id, name: org.name } : null;
+    const org = page.props.organization as OrgOption | null;
+    return org ? { id: org.id, name: org.name, icon_url: org.icon_url, logo_url: org.logo_url, has_growth_plan: org.has_growth_plan } : null;
 });
 
 const organizations = computed<OrgOption[]>(() => {
-    const orgs = (page.props.organizations as Array<{ id: string; name: string }>) || [];
+    const orgs = (page.props.organizations as Array<OrgOption>) || [];
     return orgs;
 });
 </script>
@@ -43,12 +43,18 @@ const organizations = computed<OrgOption[]>(() => {
                         size="lg"
                         class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     >
-                        <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                            <Building2 class="size-4" />
+                        <div class="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                            <img v-if="currentOrg?.icon_url" :src="currentOrg.icon_url" alt="Org icon" class="h-full w-full object-cover" />
+                            <Building2 v-else class="size-4" />
                         </div>
                         <div class="grid flex-1 text-left text-sm leading-tight min-w-0">
                             <span class="truncate font-semibold" :title="currentOrg?.name || 'Select organization'">
-                                {{ currentOrg?.name || 'Select organization' }}
+                                <template v-if="currentOrg?.has_growth_plan && currentOrg?.logo_url">
+                                    <img :src="currentOrg.logo_url" alt="Org logo" class="max-h-5 inline-block align-middle" />
+                                </template>
+                                <template v-else>
+                                    {{ currentOrg?.name || 'Select organization' }}
+                                </template>
                             </span>
                             <span class="truncate text-xs">Organization</span>
                         </div>
@@ -73,10 +79,18 @@ const organizations = computed<OrgOption[]>(() => {
                     as-child
                 >
                     <Link :href="`/organizations/${org.id}/switch`" method="post" preserve-scroll class="flex items-center gap-2 w-full">
-                        <div class="flex size-6 items-center justify-center rounded-sm border">
-                            <Building2 class="size-4 shrink-0" />
+                        <div class="flex size-6 items-center justify-center overflow-hidden rounded-sm border">
+                            <img v-if="org.icon_url" :src="org.icon_url" alt="Org icon" class="h-full w-full object-cover" />
+                            <Building2 v-else class="size-4 shrink-0" />
                         </div>
-                        <span class="truncate">{{ org.name }}</span>
+                        <span class="truncate">
+                            <template v-if="org.has_growth_plan && org.logo_url">
+                                <img :src="org.logo_url" alt="Org logo" class="max-h-5 inline-block align-middle" />
+                            </template>
+                            <template v-else>
+                                {{ org.name }}
+                            </template>
+                        </span>
                         <span class="ml-auto text-[11px] text-muted-foreground">⌘{{ index + 1 }}</span>
                     </Link>
                 </DropdownMenuItem>

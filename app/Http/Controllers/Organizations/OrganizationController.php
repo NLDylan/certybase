@@ -80,6 +80,32 @@ class OrganizationController extends Controller
     }
 
     /**
+     * Display the organization branding settings page.
+     */
+    public function branding(): Response
+    {
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            abort(404, 'No organization selected');
+        }
+
+        $organization = \App\Models\Organization::findOrFail($organizationId);
+
+        $this->authorize('view', $organization);
+
+        return Inertia::render('organizations/Settings/Branding', [
+            'organization' => [
+                'id' => $organization->id,
+                'name' => $organization->name,
+                'icon_url' => $organization->icon_url,
+                'logo_url' => $organization->logo_url,
+                'has_growth_plan' => $organization->hasGrowthPlan(),
+            ],
+        ]);
+    }
+
+    /**
      * Update the organization (uses session-based organization).
      */
     public function update(UpdateOrganizationRequest $request): RedirectResponse

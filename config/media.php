@@ -27,7 +27,8 @@ return [
         'organization' => [
             'class' => App\Models\Organization::class,
             'collections' => [
-                'branding',
+                'icon',
+                'logo',
             ],
         ],
         'design-template' => [
