@@ -19,6 +19,8 @@ import { useEditorStore } from '@/stores/editor'
 import { useUnsplash } from '@/lib/unsplash'
 import { Skeleton } from '@/components/ui/skeleton'
 
+import { toast } from 'vue-sonner'
+
 const editorStore = useEditorStore()
 
 // Icon search state
@@ -70,8 +72,64 @@ function addIconToCanvas(iconName: string) {
   editorStore.addLucideIcon(iconName)
 }
 
-function addImageToCanvas(url: string) {
-  editorStore.addImage(url)
+function getCsrfToken(): string {
+  // Get CSRF token from cookie (Laravel sets XSRF-TOKEN cookie)
+  const name = 'XSRF-TOKEN'
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return decodeURIComponent(parts.pop()?.split(';').shift() || '')
+  }
+  return ''
+}
+
+const downloadingImages = ref<Set<string>>(new Set())
+
+async function addImageToCanvas(url: string) {
+  if (!editorStore.designId) {
+    toast.error('Design ID is missing. Please refresh the page.')
+    return
+  }
+
+  // If already downloading this image, skip
+  if (downloadingImages.value.has(url)) {
+    return
+  }
+
+  try {
+    downloadingImages.value.add(url)
+    const response = await fetch(`/designs/${editorStore.designId}/images/download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-XSRF-TOKEN': getCsrfToken(),
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ url }),
+    })
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to download image'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.message || errorMessage
+      } catch {
+        // If response isn't JSON, use status text
+        errorMessage = `${response.status}: ${response.statusText}`
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data = await response.json()
+    editorStore.addImage(data.url)
+    toast.success('Image added successfully!')
+  } catch (error: any) {
+    console.error('Error downloading image:', error)
+    toast.error(error.message || 'Failed to download image')
+  } finally {
+    downloadingImages.value.delete(url)
+  }
 }
 
 function addShapeToCanvas(url: string) {
@@ -159,9 +217,14 @@ onUnmounted(() => {
               </div>
               <div v-else class="grid grid-cols-2 gap-4 p-1">
                 <div v-for="image in images" :key="image.id"
-                  class="aspect-w-1 aspect-h-1 border rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  class="aspect-w-1 aspect-h-1 border rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity relative"
+                  :class="{ 'opacity-50 pointer-events-none': downloadingImages.has(image.urls.regular) }"
                   @click="addImageToCanvas(image.urls.regular)">
                   <img :src="image.urls.thumb" :alt="image.alt_description" class="w-full h-full object-cover" />
+                  <div v-if="downloadingImages.has(image.urls.regular)"
+                    class="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  </div>
                 </div>
               </div>
               <div v-if="loading && images && images.length > 0" class="grid grid-cols-2 gap-4 p-1">

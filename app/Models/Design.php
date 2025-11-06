@@ -90,5 +90,7 @@ class Design extends Model implements HasMedia
     {
         $this->addMediaCollection('preview_image')
             ->singleFile();
+
+        $this->addMediaCollection('canvas_images');
     }
 }

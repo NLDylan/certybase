@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImageIcon } from 'lucide-vue-next'
 import { useEditorStore } from '@/stores/editor'
-
 import { toast } from 'vue-sonner'
 
 const editorStore = useEditorStore()
@@ -18,6 +17,7 @@ const imageUrl = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDialogOpen = ref(false)
 const selectedFile = ref<File | null>(null)
+const isUploading = ref(false)
 
 // Watch for the dialog to close and reset the state
 watch(isDialogOpen, (isOpen) => {
@@ -37,7 +37,18 @@ function isValidImageUrl(url: string): boolean {
   return imageExtensions.some((ext) => lowerCaseUrl.endsWith(ext))
 }
 
-function handleAddImageFromLink() {
+function getCsrfToken(): string {
+  // Get CSRF token from cookie (Laravel sets XSRF-TOKEN cookie)
+  const name = 'XSRF-TOKEN'
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return decodeURIComponent(parts.pop()?.split(';').shift() || '')
+  }
+  return ''
+}
+
+async function handleAddImageFromLink() {
   if (!imageUrl.value) {
     toast.error('Please enter an image URL.')
     return
@@ -49,9 +60,46 @@ function handleAddImageFromLink() {
     return
   }
 
-  editorStore.addImage(imageUrl.value)
-  isDialogOpen.value = false // This will trigger the watch handler to reset state
-  toast.success('Image added successfully!')
+  if (!editorStore.designId) {
+    toast.error('Design ID is missing. Please refresh the page.')
+    return
+  }
+
+  try {
+    isUploading.value = true
+    const response = await fetch(`/designs/${editorStore.designId}/images/download`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-XSRF-TOKEN': getCsrfToken(),
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ url: imageUrl.value }),
+    })
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to download image'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.message || errorMessage
+      } catch {
+        // If response isn't JSON, use status text
+        errorMessage = `${response.status}: ${response.statusText}`
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data = await response.json()
+    editorStore.addImage(data.url)
+    isDialogOpen.value = false
+    toast.success('Image added successfully!')
+  } catch (error: any) {
+    console.error('Error downloading image:', error)
+    toast.error(error.message || 'Failed to download image')
+  } finally {
+    isUploading.value = false
+  }
 }
 
 function handleFileChange(event: Event) {
@@ -63,28 +111,62 @@ function handleFileChange(event: Event) {
   }
 }
 
-function handleUploadImage() {
-  if (selectedFile.value) {
-    const file = selectedFile.value
-
-    if (!file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
-      toast.error(
-        'Invalid file type. Please upload an image (e.g., JPG, PNG, SVG).'
-      )
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        editorStore.addImage(e.target.result as string)
-        isDialogOpen.value = false // This will trigger the watch handler to reset state
-        toast.success('Image uploaded successfully!')
-      }
-    }
-    reader.readAsDataURL(file)
-  } else {
+async function handleUploadImage() {
+  if (!selectedFile.value) {
     toast.error('Please select an image to upload.')
+    return
+  }
+
+  if (!editorStore.designId) {
+    toast.error('Design ID is missing. Please refresh the page.')
+    return
+  }
+
+  const file = selectedFile.value
+
+  if (!file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
+    toast.error(
+      'Invalid file type. Please upload an image (e.g., JPG, PNG, SVG).'
+    )
+    return
+  }
+
+  try {
+    isUploading.value = true
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const response = await fetch(`/designs/${editorStore.designId}/images/upload`, {
+      method: 'POST',
+      headers: {
+        'X-XSRF-TOKEN': getCsrfToken(),
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to upload image'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.message || errorMessage
+      } catch {
+        // If response isn't JSON, use status text
+        errorMessage = `${response.status}: ${response.statusText}`
+      }
+      throw new Error(errorMessage)
+    }
+
+    const data = await response.json()
+    editorStore.addImage(data.url)
+    isDialogOpen.value = false
+    toast.success('Image uploaded successfully!')
+  } catch (error: any) {
+    console.error('Error uploading image:', error)
+    toast.error(error.message || 'Failed to upload image')
+  } finally {
+    isUploading.value = false
   }
 }
 </script>
@@ -115,16 +197,10 @@ function handleUploadImage() {
               <label for="picture" class="text-sm font-medium">
                 Upload your image
               </label>
-              <Input
-                id="picture"
-                type="file"
-                ref="fileInput"
-                class="h-9 text-sm"
-                @change="handleFileChange"
-              />
+              <Input id="picture" type="file" ref="fileInput" class="h-9 text-sm" @change="handleFileChange" />
             </div>
-            <Button class="h-9 px-4 text-sm" @click="handleUploadImage">
-              Upload
+            <Button class="h-9 px-4 text-sm" @click="handleUploadImage" :disabled="isUploading">
+              {{ isUploading ? 'Uploading...' : 'Upload' }}
             </Button>
           </TabsContent>
 
@@ -133,15 +209,11 @@ function handleUploadImage() {
               <label for="image-url" class="text-sm font-medium">
                 Image URL
               </label>
-              <Input
-                id="image-url"
-                v-model="imageUrl"
-                placeholder="https://example.com/image.jpg"
-                class="h-9 text-sm"
-              />
+              <Input id="image-url" v-model="imageUrl" placeholder="https://example.com/image.jpg"
+                class="h-9 text-sm" />
             </div>
-            <Button class="h-9 px-4 text-sm" @click="handleAddImageFromLink">
-              Add Image
+            <Button class="h-9 px-4 text-sm" @click="handleAddImageFromLink" :disabled="isUploading">
+              {{ isUploading ? 'Downloading...' : 'Add Image' }}
             </Button>
           </TabsContent>
         </div>

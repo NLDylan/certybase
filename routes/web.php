@@ -120,6 +120,14 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
     Route::delete('/designs/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'destroy'])
         ->name('designs.destroy');
 
+    // Design image uploads
+    Route::post('/designs/{design}/images/upload', [\App\Http\Controllers\Designs\DesignImageController::class, 'upload'])
+        ->name('designs.images.upload');
+    Route::post('/designs/{design}/images/download', [\App\Http\Controllers\Designs\DesignImageController::class, 'downloadFromUrl'])
+        ->name('designs.images.download');
+    Route::get('/designs/{design}/images/{media}', [\App\Http\Controllers\Designs\DesignImageController::class, 'show'])
+        ->name('designs.images.show');
+
     // Campaigns - organization-scoped
     Route::resource('campaigns', \App\Http\Controllers\Campaigns\CampaignController::class)->names([
         'index' => 'campaigns.index',
