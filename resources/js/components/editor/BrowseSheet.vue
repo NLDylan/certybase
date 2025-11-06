@@ -98,7 +98,7 @@ async function addImageToCanvas(url: string) {
 
   try {
     downloadingImages.value.add(url)
-    const response = await fetch(`/designs/${editorStore.designId}/images/download`, {
+    const response = await fetch(`/media/from-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -106,7 +106,12 @@ async function addImageToCanvas(url: string) {
         'Accept': 'application/json',
       },
       credentials: 'same-origin',
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({
+        model_type: 'design',
+        model_id: editorStore.designId,
+        collection: 'canvas_images',
+        url,
+      }),
     })
 
     if (!response.ok) {

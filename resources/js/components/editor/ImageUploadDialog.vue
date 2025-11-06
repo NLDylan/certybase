@@ -67,7 +67,7 @@ async function handleAddImageFromLink() {
 
   try {
     isUploading.value = true
-    const response = await fetch(`/designs/${editorStore.designId}/images/download`, {
+    const response = await fetch(`/media/from-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +75,12 @@ async function handleAddImageFromLink() {
         'Accept': 'application/json',
       },
       credentials: 'same-origin',
-      body: JSON.stringify({ url: imageUrl.value }),
+      body: JSON.stringify({
+        model_type: 'design',
+        model_id: editorStore.designId,
+        collection: 'canvas_images',
+        url: imageUrl.value,
+      }),
     })
 
     if (!response.ok) {
@@ -134,16 +139,23 @@ async function handleUploadImage() {
   try {
     isUploading.value = true
     const formData = new FormData()
-    formData.append('image', file)
+    formData.append('file', file)
 
-    const response = await fetch(`/designs/${editorStore.designId}/images/upload`, {
+    const response = await fetch(`/media`, {
       method: 'POST',
       headers: {
         'X-XSRF-TOKEN': getCsrfToken(),
         'Accept': 'application/json',
       },
       credentials: 'same-origin',
-      body: formData,
+      body: (() => {
+        const fd = new FormData()
+        fd.append('model_type', 'design')
+        fd.append('model_id', editorStore.designId)
+        fd.append('collection', 'canvas_images')
+        fd.append('file', file)
+        return fd
+      })(),
     })
 
     if (!response.ok) {

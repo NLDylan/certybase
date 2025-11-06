@@ -13,6 +13,8 @@ use App\Policies\DesignPolicy;
 use App\Policies\DesignTemplatePolicy;
 use App\Policies\OrganizationPolicy;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
 use Laravel\Cashier\Cashier;
 
 class AppServiceProvider extends ServiceProvider
@@ -45,5 +47,13 @@ class AppServiceProvider extends ServiceProvider
     {
         // Use Organization as the Cashier billable model
         Cashier::useCustomerModel(Organization::class);
+
+        // Define media remote download rate limiter
+        RateLimiter::for('media-remote', function ($request) {
+            $userId = (string) optional($request->user())->getAuthIdentifier();
+            $by = $userId !== '' ? 'user:'.$userId : 'ip:'.$request->ip();
+
+            return [Limit::perMinute(10)->by($by)];
+        });
     }
 }

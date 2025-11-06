@@ -128,6 +128,15 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
     Route::get('/designs/{design}/images/{media}', [\App\Http\Controllers\Designs\DesignImageController::class, 'show'])
         ->name('designs.images.show');
 
+    // Reusable media endpoints
+    Route::get('/media/{media}', [\App\Http\Controllers\Media\MediaController::class, 'show'])
+        ->name('media.show');
+    Route::post('/media', [\App\Http\Controllers\Media\MediaController::class, 'store'])
+        ->name('media.store');
+    Route::post('/media/from-url', [\App\Http\Controllers\Media\MediaController::class, 'storeFromUrl'])
+        ->middleware('throttle:media-remote')
+        ->name('media.from-url');
+
     // Campaigns - organization-scoped
     Route::resource('campaigns', \App\Http\Controllers\Campaigns\CampaignController::class)->names([
         'index' => 'campaigns.index',
