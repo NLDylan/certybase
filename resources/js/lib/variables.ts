@@ -15,7 +15,60 @@ declare module 'fabric' {
   }
 }
 
-export const VARIABLE_REGEX = /{{\s*([\w-]+)\s*}}/g
+const VARIABLE_REGEX = /{{\s*([\w.-]+)\s*}}/g
+const VARIABLE_EXISTS_REGEX = /{{\s*[\w.-]+\s*}}/
+const TEXT_OBJECT_TYPES = new Set(['i-text', 'textbox', 'text'])
+
+function isTextObject(obj: fabric.Object | CustomTextbox | undefined): obj is CustomTextbox {
+  if (!obj) {
+    return false
+  }
+
+  const type = (obj.type ?? '').toString().toLowerCase()
+
+  return TEXT_OBJECT_TYPES.has(type)
+}
+
+function hasVariableSyntax(content?: string | null): boolean {
+  if (typeof content !== 'string') {
+    return false
+  }
+
+  return VARIABLE_EXISTS_REGEX.test(content)
+}
+
+function resolveTemplateSource(textObj: CustomTextbox): string {
+  const currentText = typeof textObj.text === 'string' ? textObj.text : ''
+  const templateText = typeof textObj.template === 'string' ? textObj.template : ''
+
+  if (!templateText) {
+    textObj.template = currentText
+    return currentText
+  }
+
+  if (hasVariableSyntax(templateText)) {
+    return templateText
+  }
+
+  if (hasVariableSyntax(currentText)) {
+    textObj.template = currentText
+    return currentText
+  }
+
+  return templateText || currentText
+}
+
+function extractVariables(text: string): string[] {
+  const matches: string[] = []
+  const regex = new RegExp(VARIABLE_REGEX.source, 'g')
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(text)) !== null) {
+    matches.push(match[1])
+  }
+
+  return matches
+}
 
 fabric.Textbox.prototype.toObject = (function (originalToObject) {
   return function (this: fabric.Textbox, propertiesToInclude?: string[]) {
@@ -31,18 +84,10 @@ export function scanForVariables(canvas: fabric.Canvas | undefined) {
   const variableStore = useVariableStore()
   const allVariables: string[] = []
   canvas.getObjects().forEach((obj) => {
-    if (obj.type === 'i-text' || obj.type === 'textbox') {
-      const textObj = obj as CustomTextbox // Use CustomTextbox
-      // If the object has a template, use that for scanning.
-      // Otherwise, use its text and set it as the template.
-      if (!textObj.template) {
-        textObj.template = textObj.text
-      }
-      const text = textObj.template || ''
-      let match
-      while ((match = VARIABLE_REGEX.exec(text)) !== null) {
-        allVariables.push(match[1])
-      }
+    if (isTextObject(obj)) {
+      const textObj = obj as CustomTextbox
+      const text = resolveTemplateSource(textObj)
+      allVariables.push(...extractVariables(text))
     }
   })
   variableStore.setDetectedVariables(allVariables)
@@ -52,11 +97,12 @@ export function renderTemplate(
   template: string,
   values: Record<string, string>
 ): string {
-  return template.replace(VARIABLE_REGEX, (_, key) => {
+  return template.replace(VARIABLE_REGEX, (match, key) => {
     const value = values[key]
     if (value === '' || value === null || value === undefined) {
-      return `"{{${key}}}"` // Display as "{{variable_name}}"
+      return match
     }
+
     return value
   })
 }
@@ -67,7 +113,7 @@ export function applyVariables(canvas: fabric.Canvas | undefined) {
   const editorStore = useEditorStore()
   const values = variableStore.variableValues
   canvas.getObjects().forEach((obj) => {
-    if (obj.type === 'i-text' || obj.type === 'textbox') {
+    if (isTextObject(obj)) {
       const textObj = obj as CustomTextbox // Use CustomTextbox
       if (textObj.template) {
         textObj.set('text', renderTemplate(textObj.template, values))
@@ -83,7 +129,7 @@ export function handleEditingExited(
   canvas: fabric.Canvas | undefined
 ) {
   const textObj = options.target as CustomTextbox // Use CustomTextbox
-  if (textObj && (textObj.type === 'i-text' || textObj.type === 'textbox')) {
+  if (isTextObject(textObj)) {
     // Update the template with the latest text content
     textObj.template = textObj.text
     scanForVariables(canvas)
