@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\DesignStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreDesignRequest extends FormRequest
 {
@@ -19,6 +21,7 @@ class StoreDesignRequest extends FormRequest
             'design_data' => ['nullable', 'array'],
             'variables' => ['nullable', 'array'],
             'settings' => ['nullable', 'array'],
+            'status' => ['nullable', Rule::enum(DesignStatus::class)],
         ];
     }
 }

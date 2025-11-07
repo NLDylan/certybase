@@ -114,6 +114,8 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
         ->name('designs.store');
     Route::get('/designs/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'show'])
         ->name('designs.show');
+    Route::get('/designs/{design}/details', [\App\Http\Controllers\Designs\DesignController::class, 'editDetails'])
+        ->name('designs.details.edit');
     Route::get('/designs/{design}/edit', [\App\Http\Controllers\Designs\DesignController::class, 'edit'])
         ->name('designs.edit');
     Route::get('/editor/{design}', [\App\Http\Controllers\Designs\DesignController::class, 'edit'])

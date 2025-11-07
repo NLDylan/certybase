@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Designs;
 
+use App\Enums\DesignStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDesignRequest;
 use App\Http\Requests\UpdateDesignRequest;
@@ -23,6 +24,8 @@ class DesignController extends Controller
     public function index(Request $request): Response
     {
         $organizationId = $this->currentOrganizationIdOrFail();
+
+        $this->authorize('viewAny', Design::class);
 
         $query = Design::query()
             ->where('organization_id', $organizationId)
@@ -65,6 +68,8 @@ class DesignController extends Controller
     {
         $organizationId = $this->currentOrganizationIdOrFail();
 
+        $this->authorize('create', [Design::class, $organizationId]);
+
         return Inertia::render('designs/Create', [
             'organizationId' => $organizationId,
         ]);
@@ -77,6 +82,8 @@ class DesignController extends Controller
     {
         $organizationId = $this->currentOrganizationIdOrFail();
         $validated = $request->validated();
+
+        $this->authorize('create', [Design::class, $organizationId]);
 
         $design = $this->designService->create(
             $organizationId,
@@ -102,10 +109,46 @@ class DesignController extends Controller
             abort(404);
         }
 
-        $design->load(['creator', 'organization', 'campaigns', 'certificates']);
+        $this->authorize('view', $design);
 
         return Inertia::render('designs/Show', [
-            'design' => $design,
+            'design' => $this->makeDesignPayload($design, true),
+            'can' => [
+                'update' => $request->user()?->can('update', $design) ?? false,
+                'publish' => $request->user()?->can('publish', $design) ?? false,
+            ],
+        ]);
+    }
+
+    /**
+     * Show the metadata form for editing the design details.
+     */
+    public function editDetails(Request $request, Design $design): Response
+    {
+        $organizationId = $this->currentOrganizationIdOrFail();
+
+        if ($design->organization_id !== $organizationId) {
+            abort(404);
+        }
+
+        $this->authorize('update', $design);
+
+        $statusLabels = $this->designStatusLabels();
+        $statusOptions = array_map(
+            static fn (DesignStatus $status) => [
+                'value' => $status->value,
+                'label' => $statusLabels[$status->value] ?? ucfirst($status->value),
+            ],
+            DesignStatus::cases()
+        );
+
+        return Inertia::render('designs/EditDetails', [
+            'design' => $this->makeDesignPayload($design),
+            'statusOptions' => $statusOptions,
+            'can' => [
+                'update' => true,
+                'publish' => $request->user()?->can('publish', $design) ?? false,
+            ],
         ]);
     }
 
@@ -120,6 +163,8 @@ class DesignController extends Controller
         if ($design->organization_id !== $organizationId) {
             abort(404);
         }
+
+        $this->authorize('update', $design);
 
         // Load the design with relationships
         $design->load(['creator', 'organization']);
@@ -152,6 +197,8 @@ class DesignController extends Controller
             abort(404);
         }
 
+        $this->authorize('update', $design);
+
         $validated = $request->validated();
         $design->fill($validated);
         $design->save();
@@ -180,8 +227,57 @@ class DesignController extends Controller
             abort(404);
         }
 
+        $this->authorize('delete', $design);
+
         $design->delete();
 
         return redirect()->route('designs.index');
+    }
+
+    private function makeDesignPayload(Design $design, bool $includeUsage = false): array
+    {
+        $design->loadMissing(['creator', 'organization']);
+
+        if ($includeUsage) {
+            $design->loadCount(['campaigns', 'certificates']);
+        }
+
+        $statusLabels = $this->designStatusLabels();
+
+        $payload = [
+            'id' => $design->id,
+            'name' => $design->name,
+            'description' => $design->description,
+            'status' => $design->status->value,
+            'status_label' => $statusLabels[$design->status->value] ?? ucfirst($design->status->value),
+            'organization' => $design->organization ? [
+                'id' => $design->organization->id,
+                'name' => $design->organization->name,
+            ] : null,
+            'creator' => $design->creator ? [
+                'id' => $design->creator->id,
+                'name' => $design->creator->name,
+            ] : null,
+            'created_at' => optional($design->created_at)->toIso8601String(),
+            'updated_at' => optional($design->updated_at)->toIso8601String(),
+            'preview_image_url' => $design->getFirstMediaUrl('preview_image') ?: null,
+        ];
+
+        if ($includeUsage) {
+            $payload['campaigns_count'] = $design->campaigns_count;
+            $payload['certificates_count'] = $design->certificates_count;
+        }
+
+        return $payload;
+    }
+
+    private function designStatusLabels(): array
+    {
+        return [
+            DesignStatus::Draft->value => 'Draft',
+            DesignStatus::Active->value => 'Published',
+            DesignStatus::Inactive->value => 'Inactive',
+            DesignStatus::Archived->value => 'Archived',
+        ];
     }
 }
