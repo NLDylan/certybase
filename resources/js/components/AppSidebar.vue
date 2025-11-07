@@ -10,6 +10,8 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarRail,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
@@ -20,6 +22,9 @@ import AppLogo from './AppLogo.vue';
 import OrganizationSwitcher from './OrganizationSwitcher.vue';
 
 const page = usePage();
+const { state } = useSidebar();
+const isCollapsed = computed(() => state.value === 'collapsed');
+
 const currentOrganization = computed(() => {
     const org = page.props.organization as { id: string; name: string } | null;
     return org;
@@ -74,7 +79,7 @@ const footerNavItems: NavItem[] = [
 
 <template>
     <Sidebar collapsible="icon" variant="sidebar">
-        <SidebarHeader>
+        <SidebarHeader :class="isCollapsed ? 'items-center gap-3' : ''">
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
@@ -84,7 +89,7 @@ const footerNavItems: NavItem[] = [
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
-            <div class="px-2 pt-2">
+            <div :class="isCollapsed ? 'flex justify-center' : 'px-2 pt-2 w-full'">
                 <OrganizationSwitcher />
             </div>
         </SidebarHeader>
@@ -97,6 +102,8 @@ const footerNavItems: NavItem[] = [
             <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
+
+        <SidebarRail />
     </Sidebar>
     <slot />
 </template>

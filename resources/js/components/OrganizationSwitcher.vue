@@ -21,7 +21,8 @@ import {
 type OrgOption = { id: string; name: string; icon_url?: string | null; logo_url?: string | null; has_growth_plan?: boolean };
 
 const page = usePage();
-const { isMobile } = useSidebar();
+const { isMobile, state } = useSidebar();
+const isCollapsed = computed(() => state.value === 'collapsed');
 
 const currentOrg = computed<OrgOption | null>(() => {
     const org = page.props.organization as OrgOption | null;
@@ -42,8 +43,14 @@ const organizations = computed<OrgOption[]>(() => {
                     <SidebarMenuButton
                         size="lg"
                         class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        :class="{ 'justify-center gap-0': isCollapsed }"
                     >
-                        <div class="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border dark:ring-sidebar-border/60">
+                        <div
+                            :class="[
+                                'flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground',
+                                isCollapsed ? 'mx-auto' : 'ring-1 ring-sidebar-border dark:ring-sidebar-border/60'
+                            ]"
+                        >
                             <img
                                 v-if="currentOrg?.icon_url"
                                 :src="currentOrg.icon_url"
@@ -52,7 +59,7 @@ const organizations = computed<OrgOption[]>(() => {
                             />
                             <Building2 v-else class="size-4" />
                         </div>
-                        <div class="grid flex-1 text-left text-sm leading-tight min-w-0">
+                        <div v-if="!isCollapsed" class="grid min-w-0 flex-1 text-left text-sm leading-tight">
                             <span class="truncate font-semibold" :title="currentOrg?.name || 'Select organization'">
                                 <template v-if="currentOrg?.has_growth_plan && currentOrg?.logo_url">
                                 <img
@@ -67,7 +74,7 @@ const organizations = computed<OrgOption[]>(() => {
                             </span>
                             <span class="truncate text-xs">Organization</span>
                         </div>
-                        <ChevronsUpDown class="ml-auto" />
+                        <ChevronsUpDown v-if="!isCollapsed" class="ml-auto" />
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

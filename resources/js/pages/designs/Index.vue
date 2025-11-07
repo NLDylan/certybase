@@ -4,7 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
     Select,
@@ -110,83 +110,79 @@ const deleteDesign = (id: string) => {
     <Head title="Designs" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+        <div class="flex w-full flex-col gap-6 px-4 pb-12 pt-6 lg:px-12 xl:px-16">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div class="space-y-2">
+                    <h1 class="text-2xl font-semibold">Designs</h1>
+                    <p class="text-sm text-muted-foreground">
+                        Manage your certificate designs
+                    </p>
+                </div>
+                <Link href="/designs/create">
+                    <Button>
+                        <Plus class="mr-2 h-4 w-4" />
+                        Create Design
+                    </Button>
+                </Link>
+            </div>
+
             <Card>
-                <CardHeader>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Designs</CardTitle>
-                            <CardDescription>
-                                Manage your certificate designs
-                            </CardDescription>
+                <CardHeader class="space-y-4 border-b py-4">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="relative w-full md:max-w-sm">
+                            <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                v-model="search"
+                                placeholder="Search designs..."
+                                class="pl-9"
+                                @keyup.enter="handleSearch"
+                            />
                         </div>
-                        <Link href="/designs/create">
-                        <Button>
-                            <Plus class="mr-2 h-4 w-4" />
-                            Create Design
-                        </Button>
-                        </Link>
+                        <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                            <Select v-model="statusFilter" @update:model-value="handleFilterChange">
+                                <SelectTrigger class="w-full sm:w-[180px]">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="inactive">Inactive</SelectItem>
+                                    <SelectItem value="archived">Archived</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button class="w-full sm:w-auto" @click="handleSearch">Search</Button>
+                        </div>
                     </div>
                 </CardHeader>
-                <CardContent>
-                    <!-- Filters -->
-                    <div class="mb-6 flex gap-4">
-                        <div class="relative flex-1">
-                            <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input v-model="search" placeholder="Search designs..." class="pl-9"
-                                @keyup.enter="handleSearch" />
-                        </div>
-                        <Select v-model="statusFilter" @update:model-value="handleFilterChange">
-                            <SelectTrigger class="w-[180px]">
-                                <SelectValue placeholder="All Statuses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                <SelectItem value="draft">Draft</SelectItem>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="inactive">Inactive</SelectItem>
-                                <SelectItem value="archived">Archived</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button @click="handleSearch">Search</Button>
-                    </div>
-
+                <CardContent class="space-y-6">
                     <!-- Table -->
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead>
                                 <tr class="border-b">
                                     <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                                        <button class="flex items-center gap-2 hover:text-foreground"
-                                            @click="handleSort('name')">
+                                        <button class="flex items-center gap-2 hover:text-foreground" @click="handleSort('name')">
                                             Name
                                             <ArrowUpDown class="h-4 w-4" />
-                                            <span v-if="getSortIcon('name')">{{
-                                                getSortIcon('name')
-                                            }}</span>
+                                            <span v-if="getSortIcon('name')">{{ getSortIcon('name') }}</span>
                                         </button>
                                     </th>
                                     <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                                        <button class="flex items-center gap-2 hover:text-foreground"
-                                            @click="handleSort('status')">
+                                        <button class="flex items-center gap-2 hover:text-foreground" @click="handleSort('status')">
                                             Status
                                             <ArrowUpDown class="h-4 w-4" />
-                                            <span v-if="getSortIcon('status')">{{
-                                                getSortIcon('status')
-                                            }}</span>
+                                            <span v-if="getSortIcon('status')">{{ getSortIcon('status') }}</span>
                                         </button>
                                     </th>
                                     <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                                         Creator
                                     </th>
                                     <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                                        <button class="flex items-center gap-2 hover:text-foreground"
-                                            @click="handleSort('created_at')">
+                                        <button class="flex items-center gap-2 hover:text-foreground" @click="handleSort('created_at')">
                                             Created
                                             <ArrowUpDown class="h-4 w-4" />
-                                            <span v-if="getSortIcon('created_at')">{{
-                                                getSortIcon('created_at')
-                                            }}</span>
+                                            <span v-if="getSortIcon('created_at')">{{ getSortIcon('created_at') }}</span>
                                         </button>
                                     </th>
                                     <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">
@@ -195,20 +191,25 @@ const deleteDesign = (id: string) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-if="designs.data.length === 0"
-                                    class="border-b transition-colors hover:bg-muted/50">
+                                <tr v-if="designs.data.length === 0" class="border-b transition-colors hover:bg-muted/50">
                                     <td colspan="5" class="h-24 text-center text-muted-foreground">
                                         No designs found.
                                     </td>
                                 </tr>
-                                <tr v-for="design in designs.data" :key="design.id"
-                                    class="border-b transition-colors hover:bg-muted/50 cursor-pointer"
-                                    @click="goToEditor(design.id)">
+                                <tr
+                                    v-for="design in designs.data"
+                                    :key="design.id"
+                                    class="cursor-pointer border-b transition-colors hover:bg-muted/50"
+                                    @click="goToEditor(design.id)"
+                                >
                                     <td class="p-4 align-middle">
                                         <div>
-                                            <Link :href="`/designs/${design.id}`" class="font-medium hover:underline"
-                                                @click.stop>
-                                            {{ design.name }}
+                                            <Link
+                                                :href="`/designs/${design.id}`"
+                                                class="font-medium hover:underline"
+                                                @click.stop
+                                            >
+                                                {{ design.name }}
                                             </Link>
                                             <p v-if="design.description" class="text-sm text-muted-foreground">
                                                 {{ design.description }}
@@ -240,7 +241,8 @@ const deleteDesign = (id: string) => {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem @click="goToEditor(design.id)">Edit</DropdownMenuItem>
                                                 <DropdownMenuItem class="text-red-600" @click="deleteDesign(design.id)">
-                                                    Delete</DropdownMenuItem>
+                                                    Delete
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </td>
@@ -250,25 +252,35 @@ const deleteDesign = (id: string) => {
                     </div>
 
                     <!-- Pagination -->
-                    <div v-if="designs.last_page > 1" class="mt-4 flex items-center justify-between">
-                        <div class="text-sm text-muted-foreground">
+                    <div v-if="designs.last_page > 1" class="flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+                        <div>
                             Showing {{ (designs.current_page - 1) * designs.per_page + 1 }} to
                             {{ Math.min(designs.current_page * designs.per_page, designs.total) }} of
                             {{ designs.total }} results
                         </div>
                         <div class="flex gap-2">
-                            <Button v-if="designs.current_page > 1" variant="outline" size="sm" @click="
-                                router.get(
-                                    designs.links.find((l) => l.label === '&laquo; Previous')?.url || ''
-                                )
-                                ">
+                            <Button
+                                v-if="designs.current_page > 1"
+                                variant="outline"
+                                size="sm"
+                                @click="
+                                    router.get(
+                                        designs.links.find((l) => l.label === '&laquo; Previous')?.url || ''
+                                    )
+                                "
+                            >
                                 Previous
                             </Button>
-                            <Button v-if="designs.current_page < designs.last_page" variant="outline" size="sm" @click="
-                                router.get(
-                                    designs.links.find((l) => l.label === 'Next &raquo;')?.url || ''
-                                )
-                                ">
+                            <Button
+                                v-if="designs.current_page < designs.last_page"
+                                variant="outline"
+                                size="sm"
+                                @click="
+                                    router.get(
+                                        designs.links.find((l) => l.label === 'Next &raquo;')?.url || ''
+                                    )
+                                "
+                            >
                                 Next
                             </Button>
                         </div>

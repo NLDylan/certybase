@@ -4,7 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
     Select,
@@ -97,28 +97,26 @@ const getSortIcon = (column: string) => {
     <Head title="Certificates" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+        <div class="flex w-full flex-col gap-6 px-4 pb-12 pt-6 lg:px-12 xl:px-16">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div class="space-y-2">
+                    <h1 class="text-2xl font-semibold">Certificates</h1>
+                    <p class="text-sm text-muted-foreground">
+                        Manage your issued certificates
+                    </p>
+                </div>
+                <Link href="/certificates/create">
+                    <Button>
+                        <Plus class="mr-2 h-4 w-4" />
+                        Create Certificate
+                    </Button>
+                </Link>
+            </div>
+
             <Card>
-                <CardHeader>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Certificates</CardTitle>
-                            <CardDescription>
-                                Manage your issued certificates
-                            </CardDescription>
-                        </div>
-                        <Link href="/certificates/create">
-                            <Button>
-                                <Plus class="mr-2 h-4 w-4" />
-                                Create Certificate
-                            </Button>
-                        </Link>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <!-- Filters -->
-                    <div class="mb-6 flex gap-4">
-                        <div class="relative flex-1">
+                <CardHeader class="space-y-4 border-b py-4">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div class="relative w-full md:max-w-md">
                             <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 v-model="search"
@@ -127,21 +125,24 @@ const getSortIcon = (column: string) => {
                                 @keyup.enter="handleSearch"
                             />
                         </div>
-                        <Select v-model="statusFilter" @update:model-value="handleFilterChange">
-                            <SelectTrigger class="w-[180px]">
-                                <SelectValue placeholder="All Statuses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="issued">Issued</SelectItem>
-                                <SelectItem value="expired">Expired</SelectItem>
-                                <SelectItem value="revoked">Revoked</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button @click="handleSearch">Search</Button>
+                        <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+                            <Select v-model="statusFilter" @update:model-value="handleFilterChange">
+                                <SelectTrigger class="w-full sm:w-[180px]">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="issued">Issued</SelectItem>
+                                    <SelectItem value="expired">Expired</SelectItem>
+                                    <SelectItem value="revoked">Revoked</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button class="w-full sm:w-auto" @click="handleSearch">Search</Button>
+                        </div>
                     </div>
-
+                </CardHeader>
+                <CardContent class="space-y-6">
                     <!-- Table -->
                     <div class="overflow-x-auto">
                         <table class="w-full">
@@ -257,8 +258,11 @@ const getSortIcon = (column: string) => {
                     </div>
 
                     <!-- Pagination -->
-                    <div v-if="certificates.last_page > 1" class="mt-4 flex items-center justify-between">
-                        <div class="text-sm text-muted-foreground">
+                    <div
+                        v-if="certificates.last_page > 1"
+                        class="flex flex-col gap-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between"
+                    >
+                        <div>
                             Showing {{ (certificates.current_page - 1) * certificates.per_page + 1 }} to
                             {{ Math.min(certificates.current_page * certificates.per_page, certificates.total) }} of
                             {{ certificates.total }} results
