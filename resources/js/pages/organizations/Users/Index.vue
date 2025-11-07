@@ -24,7 +24,8 @@ const removeUser = (userId: string) => {
 };
 
 const breadcrumbs: BreadcrumbItemType[] = [
-    { title: 'Organization' },
+    { title: 'Organization', href: '/organization/settings' },
+    { title: 'Settings', href: '/organization/settings' },
     { title: 'Users' },
 ];
 </script>

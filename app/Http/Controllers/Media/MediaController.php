@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Media;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MediaDownloadFromUrlRequest;
 use App\Http\Requests\MediaUploadRequest;
+use Illuminate\Http\Request as HttpRequest;
 use App\Services\Media\ParentModelResolver;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -142,5 +143,27 @@ class MediaController extends Controller
                 'error' => 'Failed to download media: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * DELETE /media → clear a collection for a parent model
+     */
+    public function destroy(HttpRequest $request): JsonResponse
+    {
+        $organizationId = $this->currentOrganizationIdOrFail();
+
+        $validated = $request->validate([
+            'model_type' => ['required', 'string'],
+            'model_id' => ['required', 'string'],
+            'collection' => ['required', 'string'],
+        ]);
+
+        $parent = $this->parentModelResolver->resolve((string) $validated['model_type'], (string) $validated['model_id'], $organizationId);
+
+        Gate::authorize('update', $parent);
+
+        $parent->clearMediaCollection((string) $validated['collection']);
+
+        return response()->json(['status' => 'ok']);
     }
 }

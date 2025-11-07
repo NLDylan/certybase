@@ -18,7 +18,7 @@ class MediaUploadRequest extends FormRequest
     {
         $allowedModelTypes = array_keys((array) config('media.allowed_model_types', []));
 
-        return [
+        $base = [
             'model_type' => ['required', 'string', Rule::in($allowedModelTypes)],
             'model_id' => ['required', 'string'], // UUIDs, but keep as string to avoid overly strict
             'collection' => [
@@ -37,8 +37,23 @@ class MediaUploadRequest extends FormRequest
                     }
                 },
             ],
-            'file' => ['required', 'file', 'max:' . (int) (config('media-library.max_file_size', 10 * 1024 * 1024) / 1024), 'mimetypes:image/*,application/pdf'],
+            'file' => ['required', 'file'],
         ];
+
+        // Collection-specific overrides (organization branding must be images, <= 2MB)
+        $modelType = (string) $this->input('model_type', '');
+        $collection = (string) $this->input('collection', '');
+
+        if ($modelType === 'organization' && in_array($collection, ['icon', 'logo'], true)) {
+            $base['file'][] = 'max:2048'; // kilobytes
+            $base['file'][] = 'mimes:png,jpg,jpeg,webp';
+        } else {
+            // Default broad validation
+            $base['file'][] = 'max:' . (int) (config('media-library.max_file_size', 10 * 1024 * 1024) / 1024);
+            $base['file'][] = 'mimetypes:image/*,application/pdf';
+        }
+
+        return $base;
     }
 }
 

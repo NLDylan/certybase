@@ -12,6 +12,7 @@ use Laravel\Cashier\Subscription as CashierSubscription;
 use Laravel\Cashier\Billable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Organization extends Model implements HasMedia
 {
@@ -25,6 +26,16 @@ class Organization extends Model implements HasMedia
         'website',
         'status',
         'settings',
+    ];
+
+    protected $hidden = [
+        'media',
+    ];
+
+    protected $appends = [
+        'icon_url',
+        'logo_url',
+        'has_growth_plan',
     ];
 
     protected function casts(): array
@@ -100,7 +111,82 @@ class Organization extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
+        // Square icon (shown in avatars and switchers)
+        $this->addMediaCollection('icon')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->registerMediaConversions(function (Media $media) {
+                $this->addMediaConversion('64')
+                    ->performOnCollections('icon')
+                    ->format('webp')
+                    ->fit('crop', 64, 64)
+                    ->nonQueued();
+
+                $this->addMediaConversion('128')
+                    ->performOnCollections('icon')
+                    ->format('webp')
+                    ->fit('crop', 128, 128)
+                    ->nonQueued();
+
+                $this->addMediaConversion('256')
+                    ->performOnCollections('icon')
+                    ->format('webp')
+                    ->fit('crop', 256, 256)
+                    ->nonQueued();
+            });
+
+        // Wide logo (shown for Growth plan orgs)
         $this->addMediaCollection('logo')
-            ->singleFile();
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->registerMediaConversions(function (Media $media) {
+                // Target widths 200 and 400, constrain height ~100
+                $this->addMediaConversion('w200')
+                    ->performOnCollections('logo')
+                    ->format('webp')
+                    ->width(200)
+                    ->height(100)
+                    ->keepOriginalImageFormat()
+                    ->nonQueued();
+
+                $this->addMediaConversion('w400')
+                    ->performOnCollections('logo')
+                    ->format('webp')
+                    ->width(400)
+                    ->height(100)
+                    ->keepOriginalImageFormat()
+                    ->nonQueued();
+            });
+    }
+
+    public function getIconUrlAttribute(): ?string
+    {
+        $media = $this->getFirstMedia('icon');
+        if (! $media) {
+            return null;
+        }
+
+        return route('media.show', ['media' => $media->id]);
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        $media = $this->getFirstMedia('logo');
+        if (! $media) {
+            return null;
+        }
+
+        return route('media.show', ['media' => $media->id]);
+    }
+
+    public function getHasGrowthPlanAttribute(): bool
+    {
+        return $this->hasGrowthPlan();
+    }
+
+    public function hasGrowthPlan(): bool
+    {
+        // Treat any active subscription as Growth for now
+        return $this->hasActiveSubscription();
     }
 }
