@@ -25,8 +25,9 @@ const props = defineProps<Props>();
 const page = usePage();
 const organization = computed(() => page.props.organization as Props['organization'] | null);
 const breadcrumbs: BreadcrumbItemType[] = [
-    { title: 'Organization' },
-    { title: 'Settings' },
+    { title: 'Organization', href: '/organization/settings' },
+    { title: 'Settings', href: '/organization/settings' },
+    { title: 'General' },
 ];
 </script>
 

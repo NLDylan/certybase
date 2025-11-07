@@ -28,6 +28,16 @@ class Organization extends Model implements HasMedia
         'settings',
     ];
 
+    protected $hidden = [
+        'media',
+    ];
+
+    protected $appends = [
+        'icon_url',
+        'logo_url',
+        'has_growth_plan',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -167,6 +177,11 @@ class Organization extends Model implements HasMedia
         }
 
         return route('media.show', ['media' => $media->id]);
+    }
+
+    public function getHasGrowthPlanAttribute(): bool
+    {
+        return $this->hasGrowthPlan();
     }
 
     public function hasGrowthPlan(): bool

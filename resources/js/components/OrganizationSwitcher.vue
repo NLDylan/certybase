@@ -43,14 +43,23 @@ const organizations = computed<OrgOption[]>(() => {
                         size="lg"
                         class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     >
-                        <div class="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                            <img v-if="currentOrg?.icon_url" :src="currentOrg.icon_url" alt="Org icon" class="h-full w-full object-cover" />
+                        <div class="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border dark:ring-sidebar-border/60">
+                            <img
+                                v-if="currentOrg?.icon_url"
+                                :src="currentOrg.icon_url"
+                                alt="Org icon"
+                                class="h-full w-full object-cover mix-blend-multiply dark:mix-blend-screen"
+                            />
                             <Building2 v-else class="size-4" />
                         </div>
                         <div class="grid flex-1 text-left text-sm leading-tight min-w-0">
                             <span class="truncate font-semibold" :title="currentOrg?.name || 'Select organization'">
                                 <template v-if="currentOrg?.has_growth_plan && currentOrg?.logo_url">
-                                    <img :src="currentOrg.logo_url" alt="Org logo" class="max-h-5 inline-block align-middle" />
+                                <img
+                                    :src="currentOrg.logo_url"
+                                    alt="Org logo"
+                                    class="inline-block max-h-5 align-middle mix-blend-multiply dark:mix-blend-screen"
+                                />
                                 </template>
                                 <template v-else>
                                     {{ currentOrg?.name || 'Select organization' }}
@@ -79,13 +88,22 @@ const organizations = computed<OrgOption[]>(() => {
                     as-child
                 >
                     <Link :href="`/organizations/${org.id}/switch`" method="post" preserve-scroll class="flex items-center gap-2 w-full">
-                        <div class="flex size-6 items-center justify-center overflow-hidden rounded-sm border">
-                            <img v-if="org.icon_url" :src="org.icon_url" alt="Org icon" class="h-full w-full object-cover" />
+                        <div class="flex size-6 items-center justify-center overflow-hidden rounded-sm border bg-sidebar-accent text-sidebar-accent-foreground dark:border-sidebar-border/60">
+                            <img
+                                v-if="org.icon_url"
+                                :src="org.icon_url"
+                                alt="Org icon"
+                                class="h-full w-full object-cover mix-blend-multiply dark:mix-blend-screen"
+                            />
                             <Building2 v-else class="size-4 shrink-0" />
                         </div>
                         <span class="truncate">
                             <template v-if="org.has_growth_plan && org.logo_url">
-                                <img :src="org.logo_url" alt="Org logo" class="max-h-5 inline-block align-middle" />
+                                <img
+                                    :src="org.logo_url"
+                                    alt="Org logo"
+                                    class="inline-block max-h-5 align-middle mix-blend-multiply dark:mix-blend-screen"
+                                />
                             </template>
                             <template v-else>
                                 {{ org.name }}

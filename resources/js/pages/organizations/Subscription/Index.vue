@@ -52,7 +52,8 @@ const props = defineProps<Props>();
 
 const hasActive = computed<boolean>(() => props.organization.has_active_subscription === true);
 const breadcrumbs: BreadcrumbItemType[] = [
-    { title: 'Organization' },
+    { title: 'Organization', href: '/organization/settings' },
+    { title: 'Settings', href: '/organization/settings' },
     { title: 'Subscription' },
 ];
 const interval = ref<'monthly' | 'yearly'>(
