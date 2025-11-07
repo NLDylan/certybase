@@ -4,8 +4,14 @@ namespace App\Services;
 
 use App\Enums\CampaignCompletionReason;
 use App\Enums\CampaignStatus;
+use App\Jobs\CheckCampaignCompletion;
+use App\Jobs\ProcessBulkCertificateImport;
 use App\Models\Campaign;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CampaignService
 {
@@ -14,18 +20,22 @@ class CampaignService
      */
     public function create(string $organizationId, string $userId, array $data): Campaign
     {
-        return Campaign::create([
-            'organization_id' => $organizationId,
-            'creator_id' => $userId,
-            'design_id' => $data['design_id'],
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'variable_mapping' => $data['variable_mapping'] ?? [],
-            'start_date' => $data['start_date'] ?? null,
-            'end_date' => $data['end_date'] ?? null,
-            'certificate_limit' => $data['certificate_limit'] ?? null,
-            'status' => CampaignStatus::Draft,
-        ]);
+        return DB::transaction(function () use ($organizationId, $userId, $data) {
+            $campaign = Campaign::create([
+                'organization_id' => $organizationId,
+                'creator_id' => $userId,
+                'design_id' => $data['design_id'],
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+                'variable_mapping' => $data['variable_mapping'] ?? [],
+                'start_date' => $data['start_date'] ?? null,
+                'end_date' => $data['end_date'] ?? null,
+                'certificate_limit' => $data['certificate_limit'] ?? null,
+                'status' => CampaignStatus::Draft,
+            ]);
+
+            return $campaign->refresh();
+        });
     }
 
     /**
@@ -36,31 +46,44 @@ class CampaignService
         $campaign = Campaign::findOrFail($campaignId);
 
         if ($campaign->status !== CampaignStatus::Draft) {
-            throw new \Exception('Campaign is not in draft status.');
+            throw new \RuntimeException('Campaign can only be executed from the draft state.');
         }
 
-        $campaign->update([
+        $campaign->forceFill([
             'status' => CampaignStatus::Active,
-        ]);
+            'completed_at' => null,
+            'completion_reason' => null,
+            'start_date' => $campaign->start_date ?? Carbon::now()->toDateString(),
+        ])->save();
 
-        // TODO: Dispatch initial certificate generation if needed
-        // TODO: Check completion conditions
+        CheckCampaignCompletion::dispatch($campaign->id);
 
-        return $campaign;
+        return $campaign->refresh();
     }
 
     /**
      * Import recipients from CSV and create certificates.
      */
-    public function importRecipients(string $campaignId, $csvFile): int
+    public function importRecipients(string $campaignId, UploadedFile $csvFile): int
     {
         $campaign = Campaign::findOrFail($campaignId);
 
-        // TODO: Parse CSV file
-        // TODO: Map CSV columns to variables based on variable_mapping
-        // TODO: Queue ProcessBulkCertificateImport job
+        $extension = $csvFile->getClientOriginalExtension() ?: 'csv';
+        $fileName = Str::uuid().'.'.$extension;
+        $directory = "campaign-imports/{$campaign->id}";
+        $storedPath = Storage::disk('local')->putFileAs($directory, $csvFile, $fileName);
 
-        return 0;
+        $absolutePath = Storage::disk('local')->path($storedPath);
+        $rowCount = $this->countCsvRows($absolutePath);
+
+        ProcessBulkCertificateImport::dispatch(
+            campaignId: $campaign->id,
+            organizationId: $campaign->organization_id,
+            storedPath: $storedPath,
+            disk: 'local'
+        );
+
+        return $rowCount;
     }
 
     /**
@@ -74,26 +97,72 @@ class CampaignService
             return false;
         }
 
-        $completed = false;
-        $reason = null;
+        $reason = $this->determineCompletionReason($campaign);
 
-        // Check certificate limit
-        if ($campaign->certificate_limit && $campaign->certificates_issued >= $campaign->certificate_limit) {
-            $completed = true;
-            $reason = CampaignCompletionReason::LimitReached;
+        if (! $reason) {
+            return false;
         }
 
-        // Check end date
-        if ($campaign->end_date && now()->isAfter($campaign->end_date)) {
-            $completed = true;
-            $reason = CampaignCompletionReason::DateReached;
+        $campaign->markAsCompleted($reason);
+
+        return true;
+    }
+
+    protected function determineCompletionReason(Campaign $campaign): ?CampaignCompletionReason
+    {
+        if ($campaign->certificate_limit !== null && $campaign->certificates_issued >= $campaign->certificate_limit) {
+            return CampaignCompletionReason::LimitReached;
         }
 
-        if ($completed && $reason) {
-            $campaign->markAsCompleted($reason);
+        if ($campaign->end_date !== null && Carbon::now()->greaterThan($campaign->end_date->endOfDay())) {
+            return CampaignCompletionReason::DateReached;
         }
 
-        return $completed;
+        return null;
+    }
+
+    protected function countCsvRows(string $absolutePath): int
+    {
+        if (! is_readable($absolutePath)) {
+            return 0;
+        }
+
+        $handle = fopen($absolutePath, 'rb');
+
+        if (! $handle) {
+            return 0;
+        }
+
+        $headerRead = false;
+        $rowCount = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (! $headerRead) {
+                $headerRead = true;
+
+                continue;
+            }
+
+            if ($this->rowIsEmpty($row)) {
+                continue;
+            }
+
+            $rowCount++;
+        }
+
+        fclose($handle);
+
+        return $rowCount;
+    }
+
+    protected function rowIsEmpty(array $row): bool
+    {
+        foreach ($row as $value) {
+            if (trim((string) $value) !== '') {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
-

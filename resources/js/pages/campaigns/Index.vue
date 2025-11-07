@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import CampaignController from '@/actions/App/Http/Controllers/Campaigns/CampaignController';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -25,6 +26,11 @@ interface Props {
         search?: string;
         sort_by?: string;
         sort_order?: string;
+    };
+    designs: Array<{ id: string; name: string }>;
+    statuses: string[];
+    can: {
+        create: boolean;
     };
 }
 
@@ -55,17 +61,20 @@ const statusBadgeVariant = (status: string) => {
 
 const handleSearch = () => {
     router.get(
-        '/campaigns',
-        {
-            search: search.value || undefined,
-            status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-            design_id: designFilter.value || undefined,
-            sort_by: sortBy.value,
-            sort_order: sortOrder.value,
-        },
+        CampaignController.index.url({
+            query: {
+                search: search.value || undefined,
+                status: statusFilter.value === 'all' ? undefined : statusFilter.value,
+                design_id: designFilter.value || undefined,
+                sort_by: sortBy.value,
+                sort_order: sortOrder.value,
+            },
+        }),
+        {},
         {
             preserveState: true,
             replace: true,
+            preserveScroll: true,
         }
     );
 };
@@ -88,6 +97,8 @@ const getSortIcon = (column: string) => {
     if (sortBy.value !== column) return null;
     return sortOrder.value === 'asc' ? '↑' : '↓';
 };
+
+const statuses = computed(() => props.statuses || []);
 </script>
 
 <template>
@@ -96,15 +107,15 @@ const getSortIcon = (column: string) => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex w-full flex-col gap-6 px-4 pb-12 pt-6 lg:px-12 xl:px-16">
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div class="space-y-2">
                     <h1 class="text-2xl font-semibold">Campaigns</h1>
                     <p class="text-sm text-muted-foreground">
                         Manage your certificate campaigns
                     </p>
                 </div>
-                <Link href="/campaigns/create">
-                    <Button>
+                    <Link :href="CampaignController.create.url()">
+                        <Button :disabled="!props.can.create" :variant="props.can.create ? 'default' : 'outline'">
                         <Plus class="mr-2 h-4 w-4" />
                         Create Campaign
                     </Button>
@@ -130,10 +141,20 @@ const getSortIcon = (column: string) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Statuses</SelectItem>
-                                    <SelectItem value="draft">Draft</SelectItem>
-                                    <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                    <SelectItem v-for="status in statuses" :key="status" :value="status">
+                                        {{ status.charAt(0).toUpperCase() + status.slice(1) }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select v-model="designFilter" @update:model-value="handleFilterChange">
+                                <SelectTrigger class="w-full sm:w-[220px]">
+                                    <SelectValue placeholder="All Designs" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">All Designs</SelectItem>
+                                    <SelectItem v-for="design in props.designs" :key="design.id" :value="design.id">
+                                        {{ design.name }}
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <Button class="w-full sm:w-auto" @click="handleSearch">Search</Button>
@@ -198,7 +219,7 @@ const getSortIcon = (column: string) => {
                                     class="border-b transition-colors hover:bg-muted/50">
                                     <td class="p-4 align-middle">
                                         <div>
-                                            <Link :href="`/campaigns/${campaign.id}`"
+                                            <Link :href="CampaignController.show.url({ campaign: campaign.id })"
                                                 class="font-medium hover:underline">
                                             {{ campaign.name }}
                                             </Link>
@@ -229,7 +250,7 @@ const getSortIcon = (column: string) => {
                                     </td>
                                     <td class="p-4 align-middle text-right">
                                         <div class="flex justify-end gap-2">
-                                            <Link :href="`/campaigns/${campaign.id}`">
+                                            <Link :href="CampaignController.show.url({ campaign: campaign.id })">
                                             <Button variant="ghost" size="sm">View</Button>
                                             </Link>
                                         </div>
@@ -247,19 +268,38 @@ const getSortIcon = (column: string) => {
                             {{ campaigns.total }} results
                         </div>
                         <div class="flex gap-2">
-                            <Button v-if="campaigns.current_page > 1" variant="outline" size="sm" @click="
-                                router.get(
-                                    campaigns.links.find((l) => l.label === '&laquo; Previous')?.url || ''
-                                )
-                                ">
-                                Previous
-                            </Button>
-                            <Button v-if="campaigns.current_page < campaigns.last_page" variant="outline" size="sm"
+                            <Button
+                                v-if="campaigns.current_page > 1"
+                                variant="outline"
+                                size="sm"
                                 @click="
                                     router.get(
-                                        campaigns.links.find((l) => l.label === 'Next &raquo;')?.url || ''
+                                        campaigns.links.find((link) => link.label === '&laquo; Previous')?.url || '',
+                                        {},
+                                        {
+                                            preserveScroll: true,
+                                            preserveState: true,
+                                        }
                                     )
-                                    ">
+                                "
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                v-if="campaigns.current_page < campaigns.last_page"
+                                variant="outline"
+                                size="sm"
+                                @click="
+                                    router.get(
+                                        campaigns.links.find((link) => link.label === 'Next &raquo;')?.url || '',
+                                        {},
+                                        {
+                                            preserveScroll: true,
+                                            preserveState: true,
+                                        }
+                                    )
+                                "
+                            >
                                 Next
                             </Button>
                         </div>

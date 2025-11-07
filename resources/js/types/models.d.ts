@@ -7,6 +7,8 @@ export type DesignStatus = 'draft' | 'active' | 'inactive' | 'archived';
 export type CampaignStatus = 'draft' | 'active' | 'completed' | 'cancelled';
 export type CertificateStatus = 'pending' | 'issued' | 'expired' | 'revoked';
 
+export type CampaignCompletionReason = 'limit_reached' | 'date_reached' | 'manual';
+
 // Organization
 export interface Organization {
     id: UUID;
@@ -45,6 +47,12 @@ export interface Design {
 }
 
 // Campaign
+export interface CampaignVariableMapping {
+    recipient_name?: string | null;
+    recipient_email?: string | null;
+    variables?: Record<string, string> | Array<Record<string, string>> | null;
+}
+
 export interface Campaign {
     id: UUID;
     organization_id: UUID;
@@ -52,14 +60,14 @@ export interface Campaign {
     creator_id?: UUID | null;
     name: string;
     description?: string | null;
-    variable_mapping?: Record<string, unknown> | null;
+    variable_mapping?: CampaignVariableMapping | null;
     status: CampaignStatus;
     start_date?: string | null; // ISO date
     end_date?: string | null;   // ISO date
     certificate_limit?: number | null;
     certificates_issued: number;
     completed_at?: string | null; // ISO datetime
-    completion_reason?: 'limit_reached' | 'manually_completed' | string | null; // keep flexible
+    completion_reason?: CampaignCompletionReason | string | null;
     created_at: string;
     updated_at: string;
     // Common eager relations

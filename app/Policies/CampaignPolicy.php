@@ -12,7 +12,14 @@ class CampaignPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true; // Users can view campaigns in their organizations
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            return false;
+        }
+
+        return $user->hasAccessToOrganization($organizationId)
+            && $user->canInOrganization('view-campaigns', $organizationId);
     }
 
     /**

@@ -154,6 +154,12 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
         'update' => 'campaigns.update',
         'destroy' => 'campaigns.destroy',
     ]);
+    Route::post('/campaigns/{campaign}/execute', [\App\Http\Controllers\Campaigns\CampaignController::class, 'execute'])
+        ->name('campaigns.execute');
+    Route::get('/campaigns/{campaign}/import', [\App\Http\Controllers\Campaigns\CampaignImportController::class, 'create'])
+        ->name('campaigns.import.create');
+    Route::post('/campaigns/{campaign}/import', [\App\Http\Controllers\Campaigns\CampaignImportController::class, 'store'])
+        ->name('campaigns.import.store');
 
     // Certificates - organization-scoped
     Route::resource('certificates', \App\Http\Controllers\Certificates\CertificateController::class)->names([

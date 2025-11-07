@@ -2,8 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Enums\CampaignStatus;
 use App\Enums\OrganizationStatus;
 use App\Enums\OrganizationUserStatus;
+use App\Models\Campaign;
+use App\Models\Design;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -42,6 +45,39 @@ class OrganizationSeeder extends Seeder
                 // Optionally clear team context after assignment
                 $registrar->setPermissionsTeamId(null);
             });
+        }
+
+        // Seed a sample campaign for the first organization to aid demos
+        $primaryOrganization = $organizations->first();
+
+        if ($primaryOrganization) {
+            $design = Design::factory()
+                ->for($primaryOrganization)
+                ->state([
+                    'creator_id' => $user?->id,
+                    'variables' => [
+                        'course' => '{{ course }}',
+                        'issued_on' => '{{ issued_on }}',
+                    ],
+                ])
+                ->create();
+
+            Campaign::factory()
+                ->for($primaryOrganization)
+                ->for($design)
+                ->state([
+                    'creator_id' => $user?->id,
+                    'status' => CampaignStatus::Draft,
+                    'variable_mapping' => [
+                        'recipient_name' => 'full_name',
+                        'recipient_email' => 'email',
+                        'variables' => [
+                            'course' => 'course',
+                            'issued_on' => 'issued_on',
+                        ],
+                    ],
+                ])
+                ->create();
         }
     }
 }
