@@ -37,8 +37,10 @@ interface Props {
 const props = defineProps<Props>();
 
 const search = ref(props.filters.search || '');
-const statusFilter = ref(props.filters.status || 'all');
-const designFilter = ref(props.filters.design_id || '');
+const ALL_OPTION = 'all';
+
+const statusFilter = ref(props.filters.status || ALL_OPTION);
+const designFilter = ref(props.filters.design_id || ALL_OPTION);
 const sortBy = ref(props.filters.sort_by || 'created_at');
 const sortOrder = ref(props.filters.sort_order || 'desc');
 
@@ -64,8 +66,8 @@ const handleSearch = () => {
         CampaignController.index.url({
             query: {
                 search: search.value || undefined,
-                status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-                design_id: designFilter.value || undefined,
+                status: statusFilter.value === ALL_OPTION ? undefined : statusFilter.value,
+                design_id: designFilter.value === ALL_OPTION ? undefined : designFilter.value,
                 sort_by: sortBy.value,
                 sort_order: sortOrder.value,
             },
@@ -140,7 +142,7 @@ const statuses = computed(() => props.statuses || []);
                                     <SelectValue placeholder="All Statuses" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem :value="ALL_OPTION">All Statuses</SelectItem>
                                     <SelectItem v-for="status in statuses" :key="status" :value="status">
                                         {{ status.charAt(0).toUpperCase() + status.slice(1) }}
                                     </SelectItem>
@@ -151,7 +153,7 @@ const statuses = computed(() => props.statuses || []);
                                     <SelectValue placeholder="All Designs" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">All Designs</SelectItem>
+                                    <SelectItem :value="ALL_OPTION">All Designs</SelectItem>
                                     <SelectItem v-for="design in props.designs" :key="design.id" :value="design.id">
                                         {{ design.name }}
                                     </SelectItem>

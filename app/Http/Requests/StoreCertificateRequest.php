@@ -2,13 +2,20 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Certificate;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCertificateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $organizationId = session('organization_id');
+
+        if (! $organizationId) {
+            return false;
+        }
+
+        return $this->user()?->can('create', [Certificate::class, $organizationId]) ?? false;
     }
 
     public function rules(): array
@@ -21,4 +28,3 @@ class StoreCertificateRequest extends FormRequest
         ];
     }
 }
-

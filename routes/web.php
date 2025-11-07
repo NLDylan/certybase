@@ -162,15 +162,14 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
         ->name('campaigns.import.store');
 
     // Certificates - organization-scoped
-    Route::resource('certificates', \App\Http\Controllers\Certificates\CertificateController::class)->names([
-        'index' => 'certificates.index',
-        'create' => 'certificates.create',
-        'store' => 'certificates.store',
-        'show' => 'certificates.show',
-        'edit' => 'certificates.edit',
-        'update' => 'certificates.update',
-        'destroy' => 'certificates.destroy',
-    ]);
+    Route::resource('certificates', \App\Http\Controllers\Certificates\CertificateController::class)
+        ->only(['index', 'create', 'store', 'show'])
+        ->names([
+            'index' => 'certificates.index',
+            'create' => 'certificates.create',
+            'store' => 'certificates.store',
+            'show' => 'certificates.show',
+        ]);
     Route::get('/certificates/{certificate}/download', [\App\Http\Controllers\Certificates\CertificateController::class, 'download'])
         ->name('certificates.download');
     Route::post('/certificates/{certificate}/revoke', [\App\Http\Controllers\Certificates\CertificateController::class, 'revoke'])

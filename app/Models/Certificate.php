@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CertificateStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,15 +43,6 @@ class Certificate extends Model implements HasMedia
             'expires_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function ($certificate) {
-            if (! $certificate->verification_token) {
-                $certificate->verification_token = Str::random(64);
-            }
-        });
     }
 
     public function organization(): BelongsTo
@@ -122,7 +114,7 @@ class Certificate extends Model implements HasMedia
         // This should be queued and stored in the certificate_pdf collection
     }
 
-    public function scopeForOrganization($query, string $organizationId)
+    public function scopeForOrganization(Builder $query, string $organizationId): Builder
     {
         return $query->where('organization_id', $organizationId);
     }

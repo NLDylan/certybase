@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import CertificateController from '@/actions/App/Http/Controllers/Certificates/CertificateController';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -27,14 +28,22 @@ interface Props {
         sort_by?: string;
         sort_order?: string;
     };
+    campaigns: Array<{ id: string; name: string }>;
+    designs: Array<{ id: string; name: string }>;
+    statuses: string[];
+    can: {
+        create: boolean;
+    };
 }
 
 const props = defineProps<Props>();
 
 const search = ref(props.filters.search || '');
-const statusFilter = ref(props.filters.status || 'all');
-const campaignFilter = ref(props.filters.campaign_id || '');
-const designFilter = ref(props.filters.design_id || '');
+const ALL_OPTION = 'all';
+
+const statusFilter = ref(props.filters.status || ALL_OPTION);
+const campaignFilter = ref(props.filters.campaign_id || ALL_OPTION);
+const designFilter = ref(props.filters.design_id || ALL_OPTION);
 const sortBy = ref(props.filters.sort_by || 'issued_at');
 const sortOrder = ref(props.filters.sort_order || 'desc');
 
@@ -57,18 +66,21 @@ const statusBadgeVariant = (status: string) => {
 
 const handleSearch = () => {
     router.get(
-        '/certificates',
-        {
-            search: search.value || undefined,
-            status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-            campaign_id: campaignFilter.value || undefined,
-            design_id: designFilter.value || undefined,
-            sort_by: sortBy.value,
-            sort_order: sortOrder.value,
-        },
+        CertificateController.index.url({
+            query: {
+                search: search.value || undefined,
+                status: statusFilter.value === ALL_OPTION ? undefined : statusFilter.value,
+                campaign_id: campaignFilter.value === ALL_OPTION ? undefined : campaignFilter.value,
+                design_id: designFilter.value === ALL_OPTION ? undefined : designFilter.value,
+                sort_by: sortBy.value,
+                sort_order: sortOrder.value,
+            },
+        }),
+        {},
         {
             preserveState: true,
             replace: true,
+            preserveScroll: true,
         }
     );
 };
@@ -91,6 +103,8 @@ const getSortIcon = (column: string) => {
     if (sortBy.value !== column) return null;
     return sortOrder.value === 'asc' ? '↑' : '↓';
 };
+
+const statuses = computed(() => props.statuses || []);
 </script>
 
 <template>
@@ -105,8 +119,8 @@ const getSortIcon = (column: string) => {
                         Manage your issued certificates
                     </p>
                 </div>
-                <Link href="/certificates/create">
-                    <Button>
+                <Link :href="CertificateController.create.url()">
+                    <Button :disabled="!props.can.create" :variant="props.can.create ? 'default' : 'outline'">
                         <Plus class="mr-2 h-4 w-4" />
                         Create Certificate
                     </Button>
@@ -131,11 +145,32 @@ const getSortIcon = (column: string) => {
                                     <SelectValue placeholder="All Statuses" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Statuses</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="issued">Issued</SelectItem>
-                                    <SelectItem value="expired">Expired</SelectItem>
-                                    <SelectItem value="revoked">Revoked</SelectItem>
+                                    <SelectItem :value="ALL_OPTION">All Statuses</SelectItem>
+                                    <SelectItem v-for="status in statuses" :key="status" :value="status">
+                                        {{ status.charAt(0).toUpperCase() + status.slice(1) }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select v-model="campaignFilter" @update:model-value="handleFilterChange">
+                                <SelectTrigger class="w-full sm:w-[220px]">
+                                    <SelectValue placeholder="All Campaigns" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem :value="ALL_OPTION">All Campaigns</SelectItem>
+                                    <SelectItem v-for="campaign in props.campaigns" :key="campaign.id" :value="campaign.id">
+                                        {{ campaign.name }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select v-model="designFilter" @update:model-value="handleFilterChange">
+                                <SelectTrigger class="w-full sm:w-[220px]">
+                                    <SelectValue placeholder="All Designs" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem :value="ALL_OPTION">All Designs</SelectItem>
+                                    <SelectItem v-for="design in props.designs" :key="design.id" :value="design.id">
+                                        {{ design.name }}
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <Button class="w-full sm:w-auto" @click="handleSearch">Search</Button>
@@ -234,7 +269,7 @@ const getSortIcon = (column: string) => {
                                     </td>
                                     <td class="p-4 align-middle">
                                         <Badge :variant="statusBadgeVariant(certificate.status)">
-                                            {{ certificate.status }}
+                                            {{ certificate.status.charAt(0).toUpperCase() + certificate.status.slice(1) }}
                                         </Badge>
                                     </td>
                                     <td class="p-4 align-middle text-sm text-muted-foreground">
@@ -245,9 +280,7 @@ const getSortIcon = (column: string) => {
                                     </td>
                                     <td class="p-4 align-middle text-right">
                                         <div class="flex justify-end gap-2">
-                                            <Link
-                                                :href="`/certificates/${certificate.id}`"
-                                            >
+                                            <Link :href="CertificateController.show.url({ certificate: certificate.id })">
                                                 <Button variant="ghost" size="sm">View</Button>
                                             </Link>
                                         </div>

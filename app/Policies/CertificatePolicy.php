@@ -12,7 +12,14 @@ class CertificatePolicy
      */
     public function viewAny(User $user): bool
     {
-        return true; // Users can view certificates in their organizations
+        $organization = $user->currentOrganization();
+
+        if (! $organization) {
+            return false;
+        }
+
+        return $user->hasAccessToOrganization($organization->id)
+            && $user->canInOrganization('view-certificates', $organization->id);
     }
 
     /**
