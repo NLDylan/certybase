@@ -7,6 +7,7 @@ use App\Enums\CertificateStatus;
 use App\Enums\DesignStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCertificateRequest;
+use App\Jobs\GenerateCertificatePDF;
 use App\Models\Campaign;
 use App\Models\Certificate;
 use App\Models\Design;
@@ -174,8 +175,13 @@ class CertificateController extends Controller
 
         $certificate->load(['design', 'campaign', 'organization', 'issuedToUser']);
 
+        $pdfMedia = $certificate->getFirstMedia('certificate_pdf');
+
         return Inertia::render('certificates/Show', [
-            'certificate' => $certificate,
+            'certificate' => array_merge($certificate->toArray(), [
+                'has_pdf' => (bool) $pdfMedia,
+                'pdf_generated_at' => $pdfMedia?->getCustomProperty('generated_at'),
+            ]),
             'can' => [
                 'download' => $request->user()?->can('download', $certificate) ?? false,
                 'revoke' => $request->user()?->can('revoke', $certificate) ?? false,
@@ -199,10 +205,12 @@ class CertificateController extends Controller
         $media = $certificate->getFirstMedia('certificate_pdf');
 
         if (! $media) {
-            abort(404, 'Certificate PDF not found');
+            GenerateCertificatePDF::dispatch($certificate->id);
+
+            abort(409, 'Certificate PDF is still generating.');
         }
 
-        return $media;
+        return $media->toInlineResponse(request());
     }
 
     /**

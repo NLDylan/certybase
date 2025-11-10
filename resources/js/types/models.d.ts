@@ -87,6 +87,8 @@ export interface Certificate {
     recipient_email: string;
     recipient_data?: Record<string, unknown> | null;
     certificate_data?: Record<string, unknown> | null;
+    has_pdf?: boolean;
+    pdf_generated_at?: string | null;
     verification_token: string;
     status: CertificateStatus;
     issued_at?: string | null;  // ISO datetime

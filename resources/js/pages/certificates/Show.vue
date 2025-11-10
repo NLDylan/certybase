@@ -28,6 +28,8 @@ type CertificatePayload = Certificate & {
         id: string;
         name: string;
     } | null;
+    has_pdf?: boolean;
+    pdf_generated_at?: string | null;
 };
 
 interface Props {
@@ -104,6 +106,16 @@ const revokeForm = useForm({
 
 const canRevoke = computed(() => props.can.revoke && props.certificate.status !== 'revoked');
 
+const isPdfReady = computed(() => props.certificate.has_pdf ?? false);
+
+const pdfGeneratedAt = computed(() => {
+    if (!props.certificate.pdf_generated_at) {
+        return null;
+    }
+
+    return new Date(props.certificate.pdf_generated_at).toLocaleString();
+});
+
 const revokeCertificate = () => {
     if (!canRevoke.value) {
         return;
@@ -115,12 +127,12 @@ const revokeCertificate = () => {
     });
 };
 
-const downloadUrl = computed(() => CertificateController.download.url({ certificate: props.certificate.id }));
+const downloadUrl = computed(() => (isPdfReady.value ? CertificateController.download.url({ certificate: props.certificate.id }) : null));
 
 const hasRecipientData = computed(() => recipientDataEntries.value.length > 0);
 
 const openDownload = () => {
-    if (!props.can.download) {
+    if (!props.can.download || !isPdfReady.value || !downloadUrl.value) {
         return;
     }
 
@@ -158,8 +170,13 @@ const openDownload = () => {
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" :disabled="!props.can.download" @click="openDownload">
-                        Download PDF
+                    <Button
+                        type="button"
+                        variant="outline"
+                        :disabled="!props.can.download || !isPdfReady"
+                        @click="openDownload"
+                    >
+                        {{ isPdfReady ? 'Download PDF' : 'Preparing PDF…' }}
                     </Button>
                     <Button
                         type="button"
@@ -240,6 +257,33 @@ const openDownload = () => {
                             </tbody>
                         </table>
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="text-base">PDF generation</CardTitle>
+                    <CardDescription>
+                        Status of the rendered certificate document.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-2 text-sm">
+                    <p>
+                        <span class="font-medium">Status:</span>
+                        <span :class="isPdfReady ? 'text-foreground' : 'text-muted-foreground'">
+                            {{ isPdfReady ? 'Ready to download' : 'Queued for generation' }}
+                        </span>
+                    </p>
+                    <p>
+                        <span class="font-medium">Last generated:</span>
+                        <span>
+                            {{ pdfGeneratedAt ?? 'Not generated yet' }}
+                        </span>
+                    </p>
+                    <p v-if="!isPdfReady" class="text-xs text-muted-foreground">
+                        Keep this page open and refresh after a moment. PDF rendering runs asynchronously in the
+                        background queue.
+                    </p>
                 </CardContent>
             </Card>
 
