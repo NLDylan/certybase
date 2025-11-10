@@ -28,7 +28,12 @@ class OrganizationSeeder extends Seeder
                 'settings' => [],
                 'tax_id' => 'TAX-ORG'.$i,
                 'coc_number' => 'COC-ORG'.$i,
-                'postal_address' => "123 Example Street Suite {$i}\nExample City",
+                'address_line1' => "123 Example Street Suite {$i}",
+                'address_line2' => null,
+                'address_city' => 'Example City',
+                'address_state' => 'CA',
+                'address_postal_code' => '9000'.$i,
+                'address_country' => 'US',
             ]);
         });
 

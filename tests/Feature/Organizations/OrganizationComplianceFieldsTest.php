@@ -11,6 +11,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\put;
+use function Pest\Laravel\seed;
 
 it('allows an administrator to update compliance fields', function () {
     seed(Database\Seeders\PermissionsSeeder::class);
@@ -19,7 +20,12 @@ it('allows an administrator to update compliance fields', function () {
     $organization = Organization::factory()->create([
         'tax_id' => null,
         'coc_number' => null,
-        'postal_address' => null,
+        'address_line1' => null,
+        'address_line2' => null,
+        'address_city' => null,
+        'address_state' => null,
+        'address_postal_code' => null,
+        'address_country' => null,
     ]);
 
     OrganizationUser::query()->create([
@@ -45,7 +51,12 @@ it('allows an administrator to update compliance fields', function () {
         'website' => 'https://compliance.test',
         'tax_id' => 'VAT-998877',
         'coc_number' => 'COC-556677',
-        'postal_address' => "123 Compliance Way\nSuite 400\nMetropolis, NY 12345",
+        'address_line1' => '123 Compliance Way',
+        'address_line2' => 'Suite 400',
+        'address_city' => 'Metropolis',
+        'address_state' => 'NY',
+        'address_postal_code' => '12345',
+        'address_country' => 'US',
     ];
 
     put(route('organization.settings.update'), $payload)
@@ -60,6 +71,11 @@ it('allows an administrator to update compliance fields', function () {
         'website',
         'tax_id',
         'coc_number',
-        'postal_address',
+        'address_line1',
+        'address_line2',
+        'address_city',
+        'address_state',
+        'address_postal_code',
+        'address_country',
     ]))->toMatchArray($payload);
 });

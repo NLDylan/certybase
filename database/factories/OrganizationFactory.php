@@ -23,7 +23,12 @@ class OrganizationFactory extends Factory
             'website' => $this->faker->url(),
             'tax_id' => strtoupper($this->faker->bothify('TAX-#######')),
             'coc_number' => strtoupper($this->faker->bothify('COC-####')),
-            'postal_address' => $this->faker->address(),
+            'address_line1' => $this->faker->streetAddress(),
+            'address_line2' => $this->faker->optional()->secondaryAddress(),
+            'address_city' => $this->faker->city(),
+            'address_state' => $this->faker->state(),
+            'address_postal_code' => strtoupper($this->faker->postcode()),
+            'address_country' => strtoupper($this->faker->countryCode()),
             'status' => OrganizationStatus::Active,
             'settings' => [
                 'branding' => [

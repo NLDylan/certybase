@@ -16,6 +16,14 @@ return new class extends Migration
             $table->string('email')->nullable()->unique();
             $table->string('phone_number')->nullable();
             $table->string('website')->nullable();
+            $table->string('tax_id')->nullable();
+            $table->string('coc_number')->nullable();
+            $table->string('address_line1')->nullable();
+            $table->string('address_line2')->nullable();
+            $table->string('address_city')->nullable();
+            $table->string('address_state')->nullable();
+            $table->string('address_postal_code', 20)->nullable();
+            $table->string('address_country', 2)->nullable();
             $table->enum('status', array_column(OrganizationStatus::cases(), 'value'))->default(OrganizationStatus::Active->value);
             $table->jsonb('settings')->nullable();
 

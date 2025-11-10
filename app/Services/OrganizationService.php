@@ -28,7 +28,12 @@ class OrganizationService
                 'website' => $data['website'] ?? null,
                 'tax_id' => $data['tax_id'] ?? null,
                 'coc_number' => $data['coc_number'] ?? null,
-                'postal_address' => $data['postal_address'] ?? null,
+                'address_line1' => $data['address_line1'] ?? null,
+                'address_line2' => $data['address_line2'] ?? null,
+                'address_city' => $data['address_city'] ?? null,
+                'address_state' => $data['address_state'] ?? null,
+                'address_postal_code' => $data['address_postal_code'] ?? null,
+                'address_country' => $data['address_country'] ?? null,
                 'status' => $data['status'] ?? OrganizationStatus::Active,
                 'settings' => $data['settings'] ?? [],
             ]);

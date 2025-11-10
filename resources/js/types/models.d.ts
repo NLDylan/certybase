@@ -19,7 +19,12 @@ export interface Organization {
     website?: string | null;
     tax_id?: string | null;
     coc_number?: string | null;
-    postal_address?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    address_city?: string | null;
+    address_state?: string | null;
+    address_postal_code?: string | null;
+    address_country?: string | null;
     status: 'active' | 'suspended' | string; // keep flexible if enum extends
     settings?: Record<string, unknown> | null;
     created_at: string;

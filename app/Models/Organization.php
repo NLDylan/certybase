@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Laravel\Cashier\Subscription as CashierSubscription;
 use Laravel\Cashier\Billable;
+use Laravel\Cashier\Subscription as CashierSubscription;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -26,7 +26,12 @@ class Organization extends Model implements HasMedia
         'website',
         'tax_id',
         'coc_number',
-        'postal_address',
+        'address_line1',
+        'address_line2',
+        'address_city',
+        'address_state',
+        'address_postal_code',
+        'address_country',
         'status',
         'settings',
     ];

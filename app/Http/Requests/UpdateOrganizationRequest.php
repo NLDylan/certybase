@@ -50,7 +50,12 @@ class UpdateOrganizationRequest extends FormRequest
             'website' => ['nullable', 'url', 'max:255'],
             'tax_id' => ['nullable', 'string', 'max:100'],
             'coc_number' => ['nullable', 'string', 'max:100'],
-            'postal_address' => ['nullable', 'string', 'max:1000'],
+            'address_line1' => ['nullable', 'string', 'max:255'],
+            'address_line2' => ['nullable', 'string', 'max:255'],
+            'address_city' => ['nullable', 'string', 'max:255'],
+            'address_state' => ['nullable', 'string', 'max:255'],
+            'address_postal_code' => ['nullable', 'string', 'max:20'],
+            'address_country' => ['nullable', 'string', 'size:2', 'uppercase'],
             'settings' => ['nullable', 'array'],
         ];
     }

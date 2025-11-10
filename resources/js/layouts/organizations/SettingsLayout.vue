@@ -61,8 +61,8 @@ const currentPath = typeof window !== 'undefined' ? window.location.pathname : '
 
             <Separator class="my-6 lg:hidden" />
 
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-12">
+            <div class="flex-1 lg:max-w-4xl xl:max-w-5xl">
+                <section class="w-full space-y-12">
                     <slot />
                 </section>
             </div>
