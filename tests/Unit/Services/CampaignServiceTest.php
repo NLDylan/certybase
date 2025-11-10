@@ -5,6 +5,7 @@ use App\Enums\CampaignStatus;
 use App\Jobs\CheckCampaignCompletion;
 use App\Jobs\ProcessBulkCertificateImport;
 use App\Models\Campaign;
+use App\Models\Certificate;
 use App\Models\Design;
 use App\Models\User;
 use App\Services\CampaignService;
@@ -81,6 +82,49 @@ it('prevents executing a campaign that is not in draft status', function () {
 
     expect(fn () => $service->execute($campaign->id))
         ->toThrow(RuntimeException::class);
+});
+
+it('finishes an active campaign manually when no automated reason applies', function () {
+    Carbon::setTestNow('2025-11-07 15:00:00');
+
+    $campaign = Campaign::factory()->active()->create([
+        'certificate_limit' => null,
+        'certificates_issued' => 3,
+    ]);
+
+    Certificate::factory()->issued()->for($campaign)->count(2)->create();
+
+    $service = app(CampaignService::class);
+    $result = $service->finish($campaign->id);
+
+    expect($result->status)->toBe(CampaignStatus::Completed)
+        ->and($result->completion_reason)->toBe(CampaignCompletionReason::Manual)
+        ->and($result->completed_at)->toBeInstanceOf(Carbon::class);
+});
+
+it('uses limit reached reason when finishing a full campaign', function () {
+    $campaign = Campaign::factory()->active()->create([
+        'certificate_limit' => 5,
+        'certificates_issued' => 5,
+    ]);
+
+    Certificate::factory()->issued()->for($campaign)->count(5)->create();
+
+    $service = app(CampaignService::class);
+    $result = $service->finish($campaign->id);
+
+    expect($result->completion_reason)->toBe(CampaignCompletionReason::LimitReached);
+});
+
+it('prevents finishing a campaign while certificates are pending', function () {
+    $campaign = Campaign::factory()->active()->create();
+
+    Certificate::factory()->for($campaign)->create(); // pending by default
+
+    $service = app(CampaignService::class);
+
+    expect(fn () => $service->finish($campaign->id))
+        ->toThrow(RuntimeException::class, 'still pending');
 });
 
 it('stores an import file and dispatches processing job', function () {

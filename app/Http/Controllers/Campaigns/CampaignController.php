@@ -13,6 +13,7 @@ use App\Services\CampaignService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use RuntimeException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -63,7 +64,18 @@ class CampaignController extends Controller
             $query->latest();
         }
 
-        $campaigns = $query->paginate(15)->withQueryString();
+        $campaigns = $query
+            ->paginate(15)
+            ->through(function (Campaign $campaign) use ($request) {
+                return array_merge($campaign->toArray(), [
+                    'can' => [
+                        'view' => $request->user()?->can('view', $campaign) ?? false,
+                        'update' => $request->user()?->can('update', $campaign) ?? false,
+                        'delete' => $request->user()?->can('delete', $campaign) ?? false,
+                    ],
+                ]);
+            })
+            ->withQueryString();
 
         $designs = Design::query()
             ->where('organization_id', $organizationId)
@@ -270,6 +282,36 @@ class CampaignController extends Controller
             ->with('flash', [
                 'bannerStyle' => 'success',
                 'banner' => 'Campaign execution started.',
+            ]);
+    }
+
+    /**
+     * Finish the specified campaign manually.
+     */
+    public function finish(Request $request, Campaign $campaign): RedirectResponse
+    {
+        $organizationId = $this->currentOrganizationIdOrFail();
+
+        if ($campaign->organization_id !== $organizationId) {
+            abort(404);
+        }
+
+        $this->authorize('execute', $campaign);
+
+        try {
+            $finishedCampaign = $this->campaignService->finish($campaign->id);
+        } catch (RuntimeException $exception) {
+            return Redirect::route('campaigns.show', $campaign)
+                ->with('flash', [
+                    'bannerStyle' => 'error',
+                    'banner' => $exception->getMessage(),
+                ]);
+        }
+
+        return Redirect::route('campaigns.show', $finishedCampaign)
+            ->with('flash', [
+                'bannerStyle' => 'success',
+                'banner' => 'Campaign marked as completed.',
             ]);
     }
 }

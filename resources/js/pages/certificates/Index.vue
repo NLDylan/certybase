@@ -14,9 +14,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowUpDown, Plus, Search } from 'lucide-vue-next';
+import { ArrowUpDown, MoreVertical, Plus, Search } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 import type { Certificate, PaginatedResponse } from '@/types/models';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Props {
     certificates: PaginatedResponse<Certificate>;
@@ -105,6 +111,31 @@ const getSortIcon = (column: string) => {
 };
 
 const statuses = computed(() => props.statuses || []);
+
+const revokeCertificate = (certificate: Certificate) => {
+    const canRevoke = (certificate.can?.revoke ?? false) && certificate.status !== 'revoked';
+
+    if (!canRevoke) {
+        return;
+    }
+
+    if (
+        !confirm(
+            'Are you sure you want to revoke this certificate? The recipient will no longer be able to access it.'
+        )
+    ) {
+        return;
+    }
+
+    router.post(
+        CertificateController.revoke.url({ certificate: certificate.id }),
+        { reason: null },
+        {
+            preserveScroll: true,
+            preserveState: true,
+        }
+    );
+};
 </script>
 
 <template>
@@ -278,12 +309,28 @@ const statuses = computed(() => props.statuses || []);
                                         </span>
                                         <span v-else>—</span>
                                     </td>
-                                    <td class="p-4 align-middle text-right">
-                                        <div class="flex justify-end gap-2">
-                                            <Link :href="CertificateController.show.url({ certificate: certificate.id })">
-                                                <Button variant="ghost" size="sm">View</Button>
-                                            </Link>
-                                        </div>
+                                    <td class="p-4 align-middle text-right" @click.stop>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreVertical class="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent class="w-44" align="end">
+                                                <DropdownMenuItem as-child>
+                                                    <Link :href="CertificateController.show.url({ certificate: certificate.id })">
+                                                        View
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    v-if="(certificate.can?.revoke ?? false) && certificate.status !== 'revoked'"
+                                                    class="text-red-600 focus:text-red-600"
+                                                    @click="revokeCertificate(certificate)"
+                                                >
+                                                    Revoke
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </td>
                                 </tr>
                             </tbody>

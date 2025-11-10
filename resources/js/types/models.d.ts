@@ -17,6 +17,9 @@ export interface Organization {
     email?: string | null;
     phone_number?: string | null;
     website?: string | null;
+    tax_id?: string | null;
+    coc_number?: string | null;
+    postal_address?: string | null;
     status: 'active' | 'suspended' | string; // keep flexible if enum extends
     settings?: Record<string, unknown> | null;
     created_at: string;
@@ -74,6 +77,11 @@ export interface Campaign {
     design?: Pick<Design, 'id' | 'name'> | null;
     creator?: UserSummary | null;
     certificates_count?: number; // when loaded with ->withCount('certificates')
+    can?: {
+        view: boolean;
+        update: boolean;
+        delete: boolean;
+    };
 }
 
 // Certificate
@@ -100,6 +108,10 @@ export interface Certificate {
     // Common eager relations
     design?: Pick<Design, 'id' | 'name'> | null;
     campaign?: Pick<Campaign, 'id' | 'name'> | null;
+    can?: {
+        view: boolean;
+        revoke: boolean;
+    };
 }
 
 // Generic pagination type matching Laravel paginator JSON

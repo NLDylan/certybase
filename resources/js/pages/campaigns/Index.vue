@@ -14,9 +14,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowUpDown, Plus, Search } from 'lucide-vue-next';
+import { ArrowUpDown, MoreVertical, Plus, Search } from 'lucide-vue-next';
 import type { BreadcrumbItem } from '@/types';
 import type { Campaign, PaginatedResponse } from '@/types/models';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Props {
     campaigns: PaginatedResponse<Campaign>;
@@ -101,6 +107,24 @@ const getSortIcon = (column: string) => {
 };
 
 const statuses = computed(() => props.statuses || []);
+
+const deleteCampaign = (campaign: Campaign) => {
+    if (!(campaign.can?.delete ?? false)) {
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
+        return;
+    }
+
+    router.delete(
+        CampaignController.destroy.url({ campaign: campaign.id }),
+        {
+            preserveScroll: true,
+            preserveState: true,
+        }
+    );
+};
 </script>
 
 <template>
@@ -250,12 +274,33 @@ const statuses = computed(() => props.statuses || []);
                                     <td class="p-4 align-middle text-sm text-muted-foreground">
                                         {{ new Date(campaign.created_at).toLocaleDateString() }}
                                     </td>
-                                    <td class="p-4 align-middle text-right">
-                                        <div class="flex justify-end gap-2">
-                                            <Link :href="CampaignController.show.url({ campaign: campaign.id })">
-                                            <Button variant="ghost" size="sm">View</Button>
-                                            </Link>
-                                        </div>
+                                    <td class="p-4 align-middle text-right" @click.stop>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreVertical class="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent class="w-40" align="end">
+                                                <DropdownMenuItem as-child>
+                                                    <Link :href="CampaignController.show.url({ campaign: campaign.id })">
+                                                        View
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem v-if="campaign.can?.update" as-child>
+                                                    <Link :href="CampaignController.edit.url({ campaign: campaign.id })">
+                                                        Edit
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    v-if="campaign.can?.delete"
+                                                    class="text-red-600 focus:text-red-600"
+                                                    @click="deleteCampaign(campaign)"
+                                                >
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </td>
                                 </tr>
                             </tbody>

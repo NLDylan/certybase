@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\CampaignCompletionReason;
 use App\Enums\CampaignStatus;
 use App\Enums\OrganizationUserStatus;
 use App\Jobs\ProcessBulkCertificateImport;
@@ -124,6 +125,20 @@ it('transitions a draft campaign to active on execute', function () {
         ->assertRedirect();
 
     expect($campaign->fresh()->status)->toBe(CampaignStatus::Active);
+});
+
+it('allows an administrator to finish an active campaign manually', function () {
+    [$user, , , $campaign] = createCampaignTestContext(CampaignStatus::Active);
+    actingAs($user);
+
+    $response = $this->post(route('campaigns.finish', $campaign));
+
+    $response->assertRedirect(route('campaigns.show', $campaign));
+
+    $campaign->refresh();
+
+    expect($campaign->status)->toBe(CampaignStatus::Completed)
+        ->and($campaign->completion_reason)->toBe(CampaignCompletionReason::Manual);
 });
 
 it('queues a csv import for processing', function () {

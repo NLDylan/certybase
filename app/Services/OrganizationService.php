@@ -26,6 +26,9 @@ class OrganizationService
                 'email' => $data['email'] ?? null,
                 'phone_number' => $data['phone_number'] ?? null,
                 'website' => $data['website'] ?? null,
+                'tax_id' => $data['tax_id'] ?? null,
+                'coc_number' => $data['coc_number'] ?? null,
+                'postal_address' => $data['postal_address'] ?? null,
                 'status' => $data['status'] ?? OrganizationStatus::Active,
                 'settings' => $data['settings'] ?? [],
             ]);

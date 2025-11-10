@@ -24,6 +24,9 @@ class Organization extends Model implements HasMedia
         'email',
         'phone_number',
         'website',
+        'tax_id',
+        'coc_number',
+        'postal_address',
         'status',
         'settings',
     ];
