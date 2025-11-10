@@ -3,8 +3,8 @@
 </script>
 
 <template>
-    <div class="h-dvh w-full bg-background">
-        <div class="mx-auto flex h-dvh w-full max-w-7xl items-center justify-center p-6">
+    <div class="min-h-dvh w-full bg-background">
+        <div class="mx-auto flex w-full max-w-7xl flex-col items-center px-6 py-12">
             <slot />
         </div>
     </div>
