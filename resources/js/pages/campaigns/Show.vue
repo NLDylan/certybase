@@ -77,13 +77,40 @@ const certificateProgress = computed(() => {
     return `${props.campaign.certificates_issued} of ${props.campaign.certificate_limit}`;
 });
 
+const isDraft = computed(() => props.campaign.status === 'draft');
+const isActive = computed(() => props.campaign.status === 'active');
+const canStart = computed(() => props.can.execute && isDraft.value);
+const canFinish = computed(() => props.can.execute && isActive.value);
+
 const executeCampaign = () => {
-    if (!props.can.execute) {
+    if (!canStart.value) {
         return;
     }
 
     router.post(
         CampaignController.execute.url({ campaign: props.campaign.id }),
+        {},
+        {
+            preserveScroll: true,
+        }
+    );
+};
+
+const finishCampaign = () => {
+    if (!canFinish.value) {
+        return;
+    }
+
+    if (
+        !confirm(
+            'Mark this campaign as completed? No additional certificates will be issued once finished.'
+        )
+    ) {
+        return;
+    }
+
+    router.post(
+        CampaignController.finish.url({ campaign: props.campaign.id }),
         {},
         {
             preserveScroll: true,
@@ -158,10 +185,19 @@ const statusLabel = (value: string) => value.charAt(0).toUpperCase() + value.sli
                     <Button
                         type="button"
                         variant="default"
-                        :disabled="!props.can.execute"
+                        :disabled="!canStart"
                         @click="executeCampaign"
                     >
                         Start execution
+                    </Button>
+                    <Button
+                        v-if="isActive"
+                        type="button"
+                        variant="destructive"
+                        :disabled="!canFinish"
+                        @click="finishCampaign"
+                    >
+                        Finish campaign
                     </Button>
                 </div>
             </div>

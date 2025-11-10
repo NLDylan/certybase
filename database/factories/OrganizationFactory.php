@@ -21,6 +21,9 @@ class OrganizationFactory extends Factory
             'email' => $this->faker->unique()->companyEmail(),
             'phone_number' => $this->faker->phoneNumber(),
             'website' => $this->faker->url(),
+            'tax_id' => strtoupper($this->faker->bothify('TAX-#######')),
+            'coc_number' => strtoupper($this->faker->bothify('COC-####')),
+            'postal_address' => $this->faker->address(),
             'status' => OrganizationStatus::Active,
             'settings' => [
                 'branding' => [

@@ -156,6 +156,8 @@ Route::middleware(['auth', 'verified', 'organization'])->group(function () {
     ]);
     Route::post('/campaigns/{campaign}/execute', [\App\Http\Controllers\Campaigns\CampaignController::class, 'execute'])
         ->name('campaigns.execute');
+    Route::post('/campaigns/{campaign}/finish', [\App\Http\Controllers\Campaigns\CampaignController::class, 'finish'])
+        ->name('campaigns.finish');
     Route::get('/campaigns/{campaign}/import', [\App\Http\Controllers\Campaigns\CampaignImportController::class, 'create'])
         ->name('campaigns.import.create');
     Route::post('/campaigns/{campaign}/import', [\App\Http\Controllers\Campaigns\CampaignImportController::class, 'store'])

@@ -72,7 +72,17 @@ class CertificateController extends Controller
             $query->latest('issued_at');
         }
 
-        $certificates = $query->paginate(15)->withQueryString();
+        $certificates = $query
+            ->paginate(15)
+            ->through(function (Certificate $certificate) use ($request) {
+                return array_merge($certificate->toArray(), [
+                    'can' => [
+                        'view' => $request->user()?->can('view', $certificate) ?? false,
+                        'revoke' => $request->user()?->can('revoke', $certificate) ?? false,
+                    ],
+                ]);
+            })
+            ->withQueryString();
 
         $campaigns = Campaign::query()
             ->select(['id', 'name'])

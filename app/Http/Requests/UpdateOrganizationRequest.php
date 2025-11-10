@@ -48,6 +48,9 @@ class UpdateOrganizationRequest extends FormRequest
             ],
             'phone_number' => ['nullable', 'string', 'max:20'],
             'website' => ['nullable', 'url', 'max:255'],
+            'tax_id' => ['nullable', 'string', 'max:100'],
+            'coc_number' => ['nullable', 'string', 'max:100'],
+            'postal_address' => ['nullable', 'string', 'max:1000'],
             'settings' => ['nullable', 'array'],
         ];
     }

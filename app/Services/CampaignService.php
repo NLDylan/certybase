@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\CampaignCompletionReason;
 use App\Enums\CampaignStatus;
+use App\Enums\CertificateStatus;
 use App\Jobs\CheckCampaignCompletion;
 use App\Jobs\ProcessBulkCertificateImport;
 use App\Models\Campaign;
@@ -12,6 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class CampaignService
 {
@@ -46,7 +48,7 @@ class CampaignService
         $campaign = Campaign::findOrFail($campaignId);
 
         if ($campaign->status !== CampaignStatus::Draft) {
-            throw new \RuntimeException('Campaign can only be executed from the draft state.');
+            throw new RuntimeException('Campaign can only be executed from the draft state.');
         }
 
         $campaign->forceFill([
@@ -57,6 +59,32 @@ class CampaignService
         ])->save();
 
         CheckCampaignCompletion::dispatch($campaign->id);
+
+        return $campaign->refresh();
+    }
+
+    /**
+     * Manually finish an active campaign.
+     */
+    public function finish(string $campaignId): Campaign
+    {
+        $campaign = Campaign::findOrFail($campaignId);
+
+        if ($campaign->status !== CampaignStatus::Active) {
+            throw new RuntimeException('Campaign can only be finished when active.');
+        }
+
+        $hasPendingCertificates = $campaign->certificates()
+            ->where('status', CertificateStatus::Pending->value)
+            ->exists();
+
+        if ($hasPendingCertificates) {
+            throw new RuntimeException('Campaign cannot be finished while certificates are still pending.');
+        }
+
+        $completionReason = $this->determineCompletionReason($campaign) ?? CampaignCompletionReason::Manual;
+
+        $campaign->markAsCompleted($completionReason);
 
         return $campaign->refresh();
     }

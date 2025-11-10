@@ -26,6 +26,9 @@ class OrganizationSeeder extends Seeder
                 'name' => 'Organization '.$i,
                 'status' => OrganizationStatus::Active,
                 'settings' => [],
+                'tax_id' => 'TAX-ORG'.$i,
+                'coc_number' => 'COC-ORG'.$i,
+                'postal_address' => "123 Example Street Suite {$i}\nExample City",
             ]);
         });
 
